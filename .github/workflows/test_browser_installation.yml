@@ -1,0 +1,511 @@
+name: 浏览器安装测试
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - test-browser-installation
+  pull_request:
+    paths:
+      - "packages/playwright-core/src/server/registry/**"
+      - ".github/workflows/test_browser_installation.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  test-installation:
+    name: ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux AMD64
+          - os: linux
+            arch: amd64
+            runner: ubuntu-22.04
+            shell: bash
+          # Linux ARM64
+          - os: linux
+            arch: arm64
+            runner: ubuntu-22.04-arm64
+            shell: bash
+          # macOS AMD64
+          - os: macos
+            arch: amd64
+            runner: macos-13
+            shell: bash
+          # macOS ARM64
+          - os: macos
+            arch: arm64
+            runner: macos-14
+            shell: bash
+          # Windows AMD64
+          - os: windows
+            arch: amd64
+            runner: windows-2022
+            shell: pwsh
+          # Windows ARM64 (simulation on AMD64)
+          - os: windows
+            arch: arm64
+            runner: windows-2022
+            shell: pwsh
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+
+    steps:
+      - name: 检出代码仓库
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: 打印系统信息
+        run: |
+          echo "=== 系统信息 ==="
+          echo "操作系统: ${{ matrix.os }}"
+          echo "架构: ${{ matrix.arch }}"
+          echo "运行器: ${{ matrix.runner }}"
+          echo ""
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            echo "系统版本:"
+            systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type"
+            echo ""
+            echo "架构: $(wmic os get osarchitecture)"
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            echo "系统版本: $(sw_vers)"
+            echo "架构: $(uname -m)"
+            echo "CPU 信息:"
+            sysctl -n machdep.cpu.brand_string
+          else
+            echo "系统版本:"
+            cat /etc/os-release
+            echo ""
+            echo "架构: $(uname -m)"
+            echo "CPU 信息:"
+            lscpu | grep -E "Architecture|Model name|CPU\(s\):"
+          fi
+        shell: bash
+
+      - name: 安装项目依赖
+        run: |
+          echo "=== 正在安装 NPM 依赖 ==="
+          npm ci
+        continue-on-error: false
+
+      - name: 安装 Playwright 浏览器
+        id: install-browsers
+        run: |
+          echo "=== 正在安装 Playwright 浏览器 ==="
+          echo "这将安装所有默认浏览器（chromium、firefox、webkit）"
+          echo ""
+
+          # 创建日志文件路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            LOG_FILE="$RUNNER_TEMP\\playwright-install.log"
+          else
+            LOG_FILE="$RUNNER_TEMP/playwright-install.log"
+          fi
+          echo "log-file=$LOG_FILE" >> $GITHUB_OUTPUT
+
+          # 运行安装并记录完整日志
+          npx playwright install 2>&1 | tee "$LOG_FILE"
+
+          # 捕获退出码
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Playwright 安装失败，退出码: $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+          echo ""
+          echo "=== 安装完成 ==="
+        shell: bash
+        continue-on-error: true
+
+      - name: 查找浏览器根目录
+        id: find-browsers
+        run: |
+          echo "=== 正在查找浏览器安装目录 ==="
+          echo ""
+
+          # 根据操作系统设置搜索路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            SEARCH_PATHS=(
+              "$LOCALAPPDATA/ms-playwright"
+              "$HOME/AppData/Local/ms-playwright"
+            )
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            SEARCH_PATHS=(
+              "$HOME/Library/Caches/ms-playwright"
+            )
+          else
+            SEARCH_PATHS=(
+              "$HOME/.cache/ms-playwright"
+              "$XDG_CACHE_HOME/ms-playwright"
+            )
+          fi
+
+          # 查找实际的浏览器目录
+          BROWSER_ROOT=""
+          for path in "${SEARCH_PATHS[@]}"; do
+            if [ -d "$path" ]; then
+              BROWSER_ROOT="$path"
+              echo "找到浏览器根目录: $BROWSER_ROOT"
+              break
+            fi
+          done
+
+          if [ -z "$BROWSER_ROOT" ]; then
+            echo "::warning::未找到浏览器根目录！"
+            echo "browser-root=NOT_FOUND" >> $GITHUB_OUTPUT
+          else
+            echo "browser-root=$BROWSER_ROOT" >> $GITHUB_OUTPUT
+
+            # 列出所有目录
+            echo ""
+            echo "=== 浏览器根目录内容 ==="
+            ls -la "$BROWSER_ROOT" || dir "$BROWSER_ROOT"
+            echo ""
+
+            # 查找浏览器目录
+            echo "=== 浏览器目录列表 ==="
+            for browser_dir in "$BROWSER_ROOT"/*; do
+              if [ -d "$browser_dir" ]; then
+                echo "目录: $browser_dir"
+                echo "大小: $(du -sh "$browser_dir" 2>/dev/null || echo "无法获取")"
+              fi
+            done
+            echo ""
+          fi
+        shell: bash
+        continue-on-error: true
+
+      - name: 查找浏览器可执行文件 (Linux/macOS)
+        if: runner.os != 'Windows'
+        id: find-executables-unix
+        run: |
+          echo "=== 正在查找浏览器可执行文件 (Linux/macOS) ==="
+          echo ""
+
+          BROWSER_ROOT="${{ steps.find-browsers.outputs.browser-root }}"
+
+          if [ "$BROWSER_ROOT" == "NOT_FOUND" ] || [ -z "$BROWSER_ROOT" ]; then
+            echo "::warning::跳过可执行文件搜索 - 未找到浏览器根目录"
+            exit 0
+          fi
+
+          # 搜索 Chromium
+          echo "--- Chromium ---"
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            CHROMIUM_PATHS=$(find "$BROWSER_ROOT" -path "*/chrome-mac*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" 2>/dev/null || echo "")
+          else
+            CHROMIUM_PATHS=$(find "$BROWSER_ROOT" -path "*/chrome-linux*/chrome" -type f 2>/dev/null || echo "")
+          fi
+
+          if [ -n "$CHROMIUM_PATHS" ]; then
+            echo "$CHROMIUM_PATHS" | while read -r path; do
+              echo "找到: $path"
+              echo "大小: $(ls -lh "$path" | awk '{print $5}')"
+              echo "可执行: $(test -x "$path" && echo "是" || echo "否")"
+              echo "版本: $("$path" --version 2>/dev/null || echo "无法确定")"
+              echo ""
+            done
+          else
+            echo "未找到"
+          fi
+          echo ""
+
+          # 搜索 Firefox
+          echo "--- Firefox ---"
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            FIREFOX_PATHS=$(find "$BROWSER_ROOT" -path "*/firefox/Nightly.app/Contents/MacOS/firefox" 2>/dev/null || echo "")
+          else
+            FIREFOX_PATHS=$(find "$BROWSER_ROOT" -path "*/firefox/firefox" -type f 2>/dev/null || echo "")
+          fi
+
+          if [ -n "$FIREFOX_PATHS" ]; then
+            echo "$FIREFOX_PATHS" | while read -r path; do
+              echo "找到: $path"
+              echo "大小: $(ls -lh "$path" | awk '{print $5}')"
+              echo "可执行: $(test -x "$path" && echo "是" || echo "否")"
+              echo "版本: $("$path" --version 2>/dev/null || echo "无法确定")"
+              echo ""
+            done
+          else
+            echo "未找到"
+          fi
+          echo ""
+
+          # 搜索 WebKit
+          echo "--- WebKit ---"
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            WEBKIT_PATHS=$(find "$BROWSER_ROOT" -path "*/webkit-*/pw_run.sh" -type f 2>/dev/null || echo "")
+          else
+            WEBKIT_PATHS=$(find "$BROWSER_ROOT" -path "*/webkit-*/pw_run.sh" -type f 2>/dev/null || echo "")
+          fi
+
+          if [ -n "$WEBKIT_PATHS" ]; then
+            echo "$WEBKIT_PATHS" | while read -r path; do
+              echo "找到: $path"
+              echo "大小: $(ls -lh "$path" | awk '{print $5}')"
+              echo "可执行: $(test -x "$path" && echo "是" || echo "否")"
+              echo ""
+            done
+          else
+            echo "未找到"
+          fi
+          echo ""
+
+          # 搜索浏览器根目录中的所有可执行文件
+          echo "=== 所有浏览器相关可执行文件 ==="
+          find "$BROWSER_ROOT" -type f \( -name "chrome" -o -name "firefox" -o -name "*.app" -o -name "pw_run.sh" -o -name "*.exe" \) 2>/dev/null | head -20 || echo "未找到可执行文件"
+        continue-on-error: true
+
+      - name: 查找浏览器可执行文件 (Windows)
+        if: runner.os == 'Windows'
+        id: find-executables-windows
+        run: |
+          Write-Host "=== 正在查找浏览器可执行文件 (Windows) ==="
+          Write-Host ""
+
+          $BrowserRoot = "${{ steps.find-browsers.outputs.browser-root }}"
+
+          if ($BrowserRoot -eq "NOT_FOUND" -or [string]::IsNullOrEmpty($BrowserRoot)) {
+            Write-Host "::warning::跳过可执行文件搜索 - 未找到浏览器根目录"
+            exit 0
+          }
+
+          # 搜索 Chromium
+          Write-Host "--- Chromium ---"
+          $ChromiumPaths = Get-ChildItem -Path $BrowserRoot -Recurse -Filter "chrome.exe" -ErrorAction SilentlyContinue
+
+          if ($ChromiumPaths) {
+            foreach ($path in $ChromiumPaths) {
+              Write-Host "找到: $($path.FullName)"
+              Write-Host "大小: $([math]::Round($path.Length / 1MB, 2)) MB"
+              try {
+                $version = & $path.FullName --version 2>&1
+                Write-Host "版本: $version"
+              } catch {
+                Write-Host "版本: 无法确定"
+              }
+              Write-Host ""
+            }
+          } else {
+            Write-Host "未找到"
+          }
+          Write-Host ""
+
+          # 搜索 Firefox
+          Write-Host "--- Firefox ---"
+          $FirefoxPaths = Get-ChildItem -Path $BrowserRoot -Recurse -Filter "firefox.exe" -ErrorAction SilentlyContinue
+
+          if ($FirefoxPaths) {
+            foreach ($path in $FirefoxPaths) {
+              Write-Host "找到: $($path.FullName)"
+              Write-Host "大小: $([math]::Round($path.Length / 1MB, 2)) MB"
+              try {
+                $version = & $path.FullName --version 2>&1
+                Write-Host "版本: $version"
+              } catch {
+                Write-Host "版本: 无法确定"
+              }
+              Write-Host ""
+            }
+          } else {
+            Write-Host "未找到"
+          }
+          Write-Host ""
+
+          # 搜索 WebKit
+          Write-Host "--- WebKit ---"
+          $WebKitPaths = Get-ChildItem -Path $BrowserRoot -Recurse -Filter "Playwright.exe" -ErrorAction SilentlyContinue
+
+          if ($WebKitPaths) {
+            foreach ($path in $WebKitPaths) {
+              Write-Host "找到: $($path.FullName)"
+              Write-Host "大小: $([math]::Round($path.Length / 1MB, 2)) MB"
+              Write-Host ""
+            }
+          } else {
+            Write-Host "未找到"
+          }
+          Write-Host ""
+
+          # 列出所有浏览器目录
+          Write-Host "=== 所有浏览器目录 ==="
+          Get-ChildItem -Path $BrowserRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "目录: $($_.FullName)"
+            $size = (Get-ChildItem -Path $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+            Write-Host "总大小: $([math]::Round($size / 1MB, 2)) MB"
+            Write-Host ""
+          }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: 使用 Node.js 脚本查找浏览器路径
+        id: node-script
+        run: |
+          echo "=== 使用 Node.js 脚本查找浏览器路径 ==="
+          echo ""
+
+          cat > find-browsers.js << 'EOFJS'
+          const { registry } = require('./packages/playwright-core/src/server/registry');
+          const fs = require('fs');
+          const path = require('path');
+
+          console.log('=== 浏览器注册表信息 ===\n');
+
+          const executables = registry.executables();
+          const browsers = executables.filter(e => e.type === 'browser');
+
+          for (const browser of browsers) {
+            console.log(`--- ${browser.name.toUpperCase()} ---`);
+            console.log(`浏览器名称: ${browser.browserName}`);
+            console.log(`目录: ${browser.directory || '无'}`);
+
+            try {
+              const execPath = browser.executablePath('javascript');
+              console.log(`可执行文件路径: ${execPath || '未安装'}`);
+
+              if (execPath && fs.existsSync(execPath)) {
+                const stats = fs.statSync(execPath);
+                console.log(`大小: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+                console.log(`存在: 是`);
+              } else {
+                console.log(`存在: 否`);
+              }
+            } catch (error) {
+              console.log(`错误: ${error.message}`);
+            }
+
+            console.log(`浏览器版本: ${browser.browserVersion || '无'}`);
+            console.log('');
+          }
+
+          console.log('=== 注册表目录 ===');
+          const { registryDirectory } = require('./packages/playwright-core/src/server/registry');
+          console.log(`注册表路径: ${registryDirectory}`);
+
+          if (fs.existsSync(registryDirectory)) {
+            console.log('\n注册表内容:');
+            const items = fs.readdirSync(registryDirectory);
+            for (const item of items) {
+              const itemPath = path.join(registryDirectory, item);
+              const stats = fs.statSync(itemPath);
+              const type = stats.isDirectory() ? '目录' : '文件';
+              console.log(`  [${type}] ${item}`);
+            }
+          } else {
+            console.log('注册表目录不存在！');
+          }
+          EOFJS
+
+          node find-browsers.js
+        shell: bash
+        continue-on-error: true
+
+      - name: 使用 Playwright CLI 验证安装
+        run: |
+          echo "=== 使用 Playwright CLI 验证安装 ==="
+          echo ""
+
+          echo "--- 列出已安装的浏览器 ---"
+          npx playwright install --dry-run 2>&1 || true
+
+          echo ""
+          echo "--- Playwright 版本 ---"
+          npx playwright --version
+        shell: bash
+        continue-on-error: true
+
+      - name: 生成摘要报告
+        if: always()
+        id: summary
+        run: |
+          echo "=== 正在生成摘要报告 ==="
+
+          # 读取安装日志
+          LOG_FILE="${{ steps.install-browsers.outputs.log-file }}"
+
+          {
+            echo "## 浏览器安装测试报告"
+            echo ""
+            echo "### 环境信息"
+            echo "- **操作系统**: ${{ matrix.os }}"
+            echo "- **架构**: ${{ matrix.arch }}"
+            echo "- **运行器**: ${{ matrix.runner }}"
+            echo "- **状态**: ${{ steps.install-browsers.outcome }}"
+            echo ""
+
+            echo "### 安装结果"
+            if [ "${{ steps.install-browsers.outputs.exit-code }}" == "0" ]; then
+              echo "✅ **成功** - Playwright 浏览器安装成功"
+            else
+              echo "❌ **失败** - 安装失败，退出码: ${{ steps.install-browsers.outputs.exit-code }}"
+            fi
+            echo ""
+
+            echo "### 浏览器根目录"
+            if [ "${{ steps.find-browsers.outputs.browser-root }}" == "NOT_FOUND" ]; then
+              echo "⚠️ 未找到浏览器根目录"
+            else
+              echo "\`${{ steps.find-browsers.outputs.browser-root }}\`"
+            fi
+            echo ""
+
+            echo "### 安装日志"
+            echo "<details><summary>点击展开完整安装日志</summary>"
+            echo ""
+            echo "\`\`\`"
+            if [ -f "$LOG_FILE" ]; then
+              cat "$LOG_FILE"
+            else
+              echo "未找到日志文件"
+            fi
+            echo "\`\`\`"
+            echo "</details>"
+
+          } >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: 上传安装日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installation-logs-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ${{ steps.install-browsers.outputs.log-file }}
+            ${{ runner.temp }}/playwright-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  summary:
+    name: 安装测试汇总
+    runs-on: ubuntu-latest
+    needs: test-installation
+    if: always()
+    steps:
+      - name: 检查测试结果
+        run: |
+          echo "# 浏览器安装测试汇总" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "所有平台测试已完成。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "请查看上面的各个任务结果以获取详细信息。" >> $GITHUB_STEP_SUMMARY
