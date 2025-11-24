@@ -41,12 +41,12 @@ jobs:
           # macOS Intel
           - os: macos
             arch: amd64
-            runner: macos-13
+            runner: macos-15-intel
             shell: bash
           # macOS ARM64 (Apple Silicon)
           - os: macos
             arch: arm64
-            runner: macos-14
+            runner: macos-latest
             shell: bash
           # Windows AMD64
           - os: windows
@@ -71,7 +71,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "pnpm"
 
       - name: 打印系统信息
         run: |
