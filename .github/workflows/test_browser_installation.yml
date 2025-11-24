@@ -89,9 +89,9 @@ jobs:
         run: |
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
-            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
           else
-            LOG_FILE="${{ runner.temp }}/test-log.txt"
+            LOG_FILE="${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
           fi
 
           echo "" | tee -a "$LOG_FILE"
@@ -121,9 +121,9 @@ jobs:
         run: |
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
-            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
           else
-            LOG_FILE="${{ runner.temp }}/test-log.txt"
+            LOG_FILE="${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
           fi
 
           echo "" | tee -a "$LOG_FILE"
@@ -186,7 +186,7 @@ jobs:
         if: runner.os != 'Windows'
         id: find-executables-unix
         run: |
-          LOG_FILE="${{ runner.temp }}/test-log.txt"
+          LOG_FILE="${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
 
           echo "" | tee -a "$LOG_FILE"
           echo "=== 正在查找浏览器可执行文件 (Linux/macOS) ===" | tee -a "$LOG_FILE"
@@ -233,39 +233,38 @@ jobs:
         if: runner.os == 'Windows'
         id: find-executables-windows
         run: |
-          "" | Out-File -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-          "=== 正在查找浏览器可执行文件 (Windows) ===" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-          "" | Out-File -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
+          $LogFile = "$env:RUNNER_TEMP\test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
+
+          "" | Out-File -Append -FilePath $LogFile
+          "=== 正在查找浏览器可执行文件 (Windows) ===" | Tee-Object -Append -FilePath $LogFile
+          "" | Out-File -Append -FilePath $LogFile
 
           $BrowserRoot = "${{ steps.find-browsers.outputs.browser-root }}"
 
           if ($BrowserRoot -eq "NOT_FOUND" -or [string]::IsNullOrEmpty($BrowserRoot)) {
-            "::warning::跳过可执行文件搜索 - 未找到浏览器根目录" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
+            "::warning::跳过可执行文件搜索 - 未找到浏览器根目录" | Tee-Object -Append -FilePath $LogFile
             exit 0
           }
 
-          # 使用 Get-ChildItem 递归搜索所有浏览器可执行文件
-          "=== 使用 PowerShell 搜索浏览器二进制文件 ===" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-          "" | Out-File -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
+          # 使用 Where.exe (Windows 命令) 快速查找
+          "=== 使用 Where 命令搜索浏览器二进制文件 ===" | Tee-Object -Append -FilePath $LogFile
+          "" | Out-File -Append -FilePath $LogFile
 
-          $Executables = Get-ChildItem -Path $BrowserRoot -Recurse -Include "chrome.exe","firefox.exe","Playwright.exe" -ErrorAction SilentlyContinue
+          # 直接在已知路径中查找，避免递归搜索
+          $BrowserDirs = Get-ChildItem -Path $BrowserRoot -Directory -ErrorAction SilentlyContinue
 
-          if ($Executables) {
-            foreach ($exe in $Executables) {
-              "找到: $($exe.FullName)" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-              "大小: $([math]::Round($exe.Length / 1MB, 2)) MB" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-              "修改时间: $($exe.LastWriteTime)" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-              
-              try {
-                $version = & $exe.FullName --version 2>&1 | Select-Object -First 1
-                "版本: $version" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-              } catch {
-                "版本: 无法确定" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
-              }
-              "" | Out-File -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
+          foreach ($dir in $BrowserDirs) {
+            "检查目录: $($dir.Name)" | Tee-Object -Append -FilePath $LogFile
+            
+            # 查找主要可执行文件（只在第一层子目录中查找）
+            $exeFiles = Get-ChildItem -Path $dir.FullName -Recurse -Depth 2 -Include "chrome.exe","firefox.exe","Playwright.exe" -ErrorAction SilentlyContinue
+            
+            foreach ($exe in $exeFiles) {
+              "  找到: $($exe.Name)" | Tee-Object -Append -FilePath $LogFile
+              "  路径: $($exe.FullName)" | Tee-Object -Append -FilePath $LogFile
+              "  大小: $([math]::Round($exe.Length / 1MB, 2)) MB" | Tee-Object -Append -FilePath $LogFile
+              "" | Out-File -Append -FilePath $LogFile
             }
-          } else {
-            "未找到任何浏览器可执行文件" | Tee-Object -Append -FilePath "$env:RUNNER_TEMP\test-log.txt"
           }
         shell: pwsh
         continue-on-error: true
@@ -274,9 +273,9 @@ jobs:
         run: |
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
-            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
           else
-            LOG_FILE="${{ runner.temp }}/test-log.txt"
+            LOG_FILE="${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
           fi
 
           echo "" | tee -a "$LOG_FILE"
@@ -299,9 +298,9 @@ jobs:
         run: |
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
-            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
           else
-            LOG_FILE="${{ runner.temp }}/test-log.txt"
+            LOG_FILE="${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt"
           fi
 
           echo "=== 正在生成摘要报告 ===" | tee -a "$LOG_FILE"
@@ -343,10 +342,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-log-${{ matrix.os }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/test-log.txt
+          path: ${{ runner.temp }}/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
           if-no-files-found: warn
           retention-days: 7
-          compression-level: 9
 
   summary:
     name: 安装测试汇总
@@ -354,10 +352,41 @@ jobs:
     needs: test-installation
     if: always()
     steps:
-      - name: 检查测试结果
+      - name: 下载所有测试日志
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-log-*
+          path: logs
+          merge-multiple: true
+
+      - name: 合并并压缩日志
+        run: |
+          cd logs
+          ls -lh
+          zip -9 ../all-test-logs.zip *.txt
+          cd ..
+          ls -lh all-test-logs.zip
+
+      - name: 上传合并的日志压缩包
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-test-logs
+          path: all-test-logs.zip
+          retention-days: 30
+          compression-level: 0
+
+      - name: 生成测试汇总报告
         run: |
           echo "# 浏览器安装测试汇总" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "所有平台测试已完成。" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "请查看上面的各个任务结果以获取详细信息。" >> $GITHUB_STEP_SUMMARY
+          echo "## 日志文件" >> $GITHUB_STEP_SUMMARY
+          echo "所有平台的测试日志已合并压缩至 \`all-test-logs.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 包含的日志文件:" >> $GITHUB_STEP_SUMMARY
+          cd logs
+          for log in *.txt; do
+            size=$(du -h "$log" | cut -f1)
+            echo "- \`$log\` ($size)" >> $GITHUB_STEP_SUMMARY
+          done
