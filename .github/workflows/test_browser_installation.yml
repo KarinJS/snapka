@@ -87,13 +87,20 @@ jobs:
       - name: 安装 Playwright 浏览器
         id: install-browsers
         run: |
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "=== 正在安装 Playwright 浏览器 ===" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "这将安装所有默认浏览器（chromium、firefox、webkit）" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          # 设置日志文件路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+          else
+            LOG_FILE="${{ runner.temp }}/test-log.txt"
+          fi
+
+          echo "" | tee -a "$LOG_FILE"
+          echo "=== 正在安装 Playwright 浏览器 ===" | tee -a "$LOG_FILE"
+          echo "这将安装所有默认浏览器（chromium、firefox、webkit）" | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
 
           # 运行安装并记录完整日志
-          npx playwright install 2>&1 | tee -a ${{ runner.temp }}/test-log.txt
+          npx playwright install 2>&1 | tee -a "$LOG_FILE"
 
           # 捕获退出码
           EXIT_CODE=${PIPESTATUS[0]}
@@ -104,17 +111,24 @@ jobs:
             exit $EXIT_CODE
           fi
 
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "=== 安装完成 ===" | tee -a ${{ runner.temp }}/test-log.txt
+          echo "" | tee -a "$LOG_FILE"
+          echo "=== 安装完成 ===" | tee -a "$LOG_FILE"
         shell: bash
         continue-on-error: true
 
       - name: 查找浏览器根目录
         id: find-browsers
         run: |
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "=== 正在查找浏览器安装目录 ===" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          # 设置日志文件路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+          else
+            LOG_FILE="${{ runner.temp }}/test-log.txt"
+          fi
+
+          echo "" | tee -a "$LOG_FILE"
+          echo "=== 正在查找浏览器安装目录 ===" | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
 
           # 根据操作系统设置搜索路径
           if [ "$RUNNER_OS" == "Windows" ]; then
@@ -138,32 +152,32 @@ jobs:
           for path in "${SEARCH_PATHS[@]}"; do
             if [ -d "$path" ]; then
               BROWSER_ROOT="$path"
-              echo "找到浏览器根目录: $BROWSER_ROOT" | tee -a ${{ runner.temp }}/test-log.txt
+              echo "找到浏览器根目录: $BROWSER_ROOT" | tee -a "$LOG_FILE"
               break
             fi
           done
 
           if [ -z "$BROWSER_ROOT" ]; then
-            echo "::warning::未找到浏览器根目录！" | tee -a ${{ runner.temp }}/test-log.txt
+            echo "::warning::未找到浏览器根目录！" | tee -a "$LOG_FILE"
             echo "browser-root=NOT_FOUND" >> $GITHUB_OUTPUT
           else
             echo "browser-root=$BROWSER_ROOT" >> $GITHUB_OUTPUT
 
             # 列出所有目录
-            echo "" | tee -a ${{ runner.temp }}/test-log.txt
-            echo "=== 浏览器根目录内容 ===" | tee -a ${{ runner.temp }}/test-log.txt
-            ls -la "$BROWSER_ROOT" 2>&1 | tee -a ${{ runner.temp }}/test-log.txt || dir "$BROWSER_ROOT" 2>&1 | tee -a ${{ runner.temp }}/test-log.txt
-            echo "" | tee -a ${{ runner.temp }}/test-log.txt
+            echo "" | tee -a "$LOG_FILE"
+            echo "=== 浏览器根目录内容 ===" | tee -a "$LOG_FILE"
+            ls -la "$BROWSER_ROOT" 2>&1 | tee -a "$LOG_FILE" || dir "$BROWSER_ROOT" 2>&1 | tee -a "$LOG_FILE"
+            echo "" | tee -a "$LOG_FILE"
 
             # 查找浏览器目录
-            echo "=== 浏览器目录列表 ===" | tee -a ${{ runner.temp }}/test-log.txt
+            echo "=== 浏览器目录列表 ===" | tee -a "$LOG_FILE"
             for browser_dir in "$BROWSER_ROOT"/*; do
               if [ -d "$browser_dir" ]; then
-                echo "目录: $browser_dir" | tee -a ${{ runner.temp }}/test-log.txt
-                du -sh "$browser_dir" 2>&1 | tee -a ${{ runner.temp }}/test-log.txt || echo "大小: 无法获取" | tee -a ${{ runner.temp }}/test-log.txt
+                echo "目录: $browser_dir" | tee -a "$LOG_FILE"
+                du -sh "$browser_dir" 2>&1 | tee -a "$LOG_FILE" || echo "大小: 无法获取" | tee -a "$LOG_FILE"
               fi
             done
-            echo "" | tee -a ${{ runner.temp }}/test-log.txt
+            echo "" | tee -a "$LOG_FILE"
           fi
         shell: bash
         continue-on-error: true
@@ -172,42 +186,44 @@ jobs:
         if: runner.os != 'Windows'
         id: find-executables-unix
         run: |
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "=== 正在查找浏览器可执行文件 (Linux/macOS) ===" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          LOG_FILE="${{ runner.temp }}/test-log.txt"
+
+          echo "" | tee -a "$LOG_FILE"
+          echo "=== 正在查找浏览器可执行文件 (Linux/macOS) ===" | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
 
           BROWSER_ROOT="${{ steps.find-browsers.outputs.browser-root }}"
 
           if [ "$BROWSER_ROOT" == "NOT_FOUND" ] || [ -z "$BROWSER_ROOT" ]; then
-            echo "::warning::跳过可执行文件搜索 - 未找到浏览器根目录" | tee -a ${{ runner.temp }}/test-log.txt
+            echo "::warning::跳过可执行文件搜索 - 未找到浏览器根目录" | tee -a "$LOG_FILE"
             exit 0
           fi
 
           # 使用 find 查找所有浏览器相关文件
-          echo "=== 使用 find 命令搜索浏览器二进制文件 ===" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          echo "=== 使用 find 命令搜索浏览器二进制文件 ===" | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
 
           if [ "$RUNNER_OS" == "macOS" ]; then
             # macOS 查找 .app 和可执行文件
             find "$BROWSER_ROOT" -type f \( -name "Google Chrome for Testing" -o -name "firefox" -o -name "Playwright" \) -o -type d -name "*.app" 2>/dev/null | while read -r path; do
-              echo "找到: $path" | tee -a ${{ runner.temp }}/test-log.txt
+              echo "找到: $path" | tee -a "$LOG_FILE"
               if [ -f "$path" ]; then
-                ls -lh "$path" | tee -a ${{ runner.temp }}/test-log.txt
+                ls -lh "$path" | tee -a "$LOG_FILE"
                 if [ -x "$path" ]; then
-                  "$path" --version 2>&1 | head -1 | tee -a ${{ runner.temp }}/test-log.txt || echo "无法获取版本" | tee -a ${{ runner.temp }}/test-log.txt
+                  "$path" --version 2>&1 | head -1 | tee -a "$LOG_FILE" || echo "无法获取版本" | tee -a "$LOG_FILE"
                 fi
               fi
-              echo "" | tee -a ${{ runner.temp }}/test-log.txt
+              echo "" | tee -a "$LOG_FILE"
             done
           else
             # Linux 查找可执行文件
             find "$BROWSER_ROOT" -type f \( -name "chrome" -o -name "firefox" -o -name "pw_run.sh" \) 2>/dev/null | while read -r path; do
-              echo "找到: $path" | tee -a ${{ runner.temp }}/test-log.txt
-              ls -lh "$path" | tee -a ${{ runner.temp }}/test-log.txt
+              echo "找到: $path" | tee -a "$LOG_FILE"
+              ls -lh "$path" | tee -a "$LOG_FILE"
               if [ -x "$path" ] && [[ "$path" != *"pw_run.sh"* ]]; then
-                "$path" --version 2>&1 | head -1 | tee -a ${{ runner.temp }}/test-log.txt || echo "无法获取版本" | tee -a ${{ runner.temp }}/test-log.txt
+                "$path" --version 2>&1 | head -1 | tee -a "$LOG_FILE" || echo "无法获取版本" | tee -a "$LOG_FILE"
               fi
-              echo "" | tee -a ${{ runner.temp }}/test-log.txt
+              echo "" | tee -a "$LOG_FILE"
             done
           fi
         shell: bash
@@ -256,17 +272,24 @@ jobs:
 
       - name: 使用 Playwright CLI 验证安装
         run: |
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "=== 使用 Playwright CLI 验证安装 ===" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          # 设置日志文件路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+          else
+            LOG_FILE="${{ runner.temp }}/test-log.txt"
+          fi
 
-          echo "--- 列出已安装的浏览器 ---" | tee -a ${{ runner.temp }}/test-log.txt
-          npx playwright install --dry-run 2>&1 | tee -a ${{ runner.temp }}/test-log.txt || true
+          echo "" | tee -a "$LOG_FILE"
+          echo "=== 使用 Playwright CLI 验证安装 ===" | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
 
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
-          echo "--- Playwright 版本 ---" | tee -a ${{ runner.temp }}/test-log.txt
-          npx playwright --version 2>&1 | tee -a ${{ runner.temp }}/test-log.txt
-          echo "" | tee -a ${{ runner.temp }}/test-log.txt
+          echo "--- 列出已安装的浏览器 ---" | tee -a "$LOG_FILE"
+          npx playwright install --dry-run 2>&1 | tee -a "$LOG_FILE" || true
+
+          echo "" | tee -a "$LOG_FILE"
+          echo "--- Playwright 版本 ---" | tee -a "$LOG_FILE"
+          npx playwright --version 2>&1 | tee -a "$LOG_FILE"
+          echo "" | tee -a "$LOG_FILE"
         shell: bash
         continue-on-error: true
 
@@ -274,7 +297,14 @@ jobs:
         if: always()
         id: summary
         run: |
-          echo "=== 正在生成摘要报告 ===" | tee -a ${{ runner.temp }}/test-log.txt
+          # 设置日志文件路径
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log.txt
+          else
+            LOG_FILE="${{ runner.temp }}/test-log.txt"
+          fi
+
+          echo "=== 正在生成摘要报告 ===" | tee -a "$LOG_FILE"
 
           {
             echo "## 浏览器安装测试报告"
