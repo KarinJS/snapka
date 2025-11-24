@@ -229,15 +229,14 @@ jobs:
         run: |
           cd logs
           ls -lh
-          zip -9 ../all-test-logs.zip *.txt
-          cd ..
+          zip -9 all-test-logs.zip *.txt
           ls -lh all-test-logs.zip
 
       - name: 上传合并的日志压缩包
         uses: actions/upload-artifact@v4
         with:
           name: all-test-logs
-          path: all-test-logs.zip
+          path: logs/all-test-logs.zip
           retention-days: 30
           compression-level: 0
 
