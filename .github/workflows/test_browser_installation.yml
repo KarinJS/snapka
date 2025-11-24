@@ -36,14 +36,14 @@ jobs:
           # Linux ARM64
           - os: linux
             arch: arm64
-            runner: ubuntu-22.04-arm64
+            runner: ubuntu-22.04-arm
             shell: bash
-          # macOS AMD64
+          # macOS Intel
           - os: macos
             arch: amd64
             runner: macos-13
             shell: bash
-          # macOS ARM64
+          # macOS ARM64 (Apple Silicon)
           - os: macos
             arch: arm64
             runner: macos-14
@@ -53,10 +53,10 @@ jobs:
             arch: amd64
             runner: windows-2022
             shell: pwsh
-          # Windows ARM64 (simulation on AMD64)
+          # Windows ARM64
           - os: windows
             arch: arm64
-            runner: windows-2022
+            runner: windows-11-arm
             shell: pwsh
 
     defaults:
@@ -71,7 +71,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: 打印系统信息
         run: |
@@ -100,10 +100,15 @@ jobs:
           fi
         shell: bash
 
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: 安装项目依赖
         run: |
-          echo "=== 正在安装 NPM 依赖 ==="
-          npm ci
+          echo "=== 正在安装项目依赖 ==="
+          pnpm install --frozen-lockfile
         continue-on-error: false
 
       - name: 安装 Playwright 浏览器
