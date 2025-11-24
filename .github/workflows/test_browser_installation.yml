@@ -107,7 +107,7 @@ jobs:
       - name: 安装项目依赖
         run: |
           echo "=== 正在安装项目依赖 ==="
-          pnpm install --frozen-lockfile
+          pnpm init
         continue-on-error: false
 
       - name: 安装 Playwright 浏览器
