@@ -108,6 +108,7 @@ jobs:
         run: |
           echo "=== 正在安装项目依赖 ==="
           pnpm init
+          pnpm install playwright
         continue-on-error: false
 
       - name: 安装 Playwright 浏览器
