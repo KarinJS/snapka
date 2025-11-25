@@ -1,0 +1,17 @@
+{
+  "name": "@karinjs/playwright",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "shijin",
+  "license": "MIT",
+  "dependencies": {
+    "@karinjs/browser-finder": "workspace:*",
+    "@karinjs/playwright-core": "workspace:*"
+  }
+}

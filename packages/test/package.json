@@ -1,0 +1,21 @@
+{
+  "name": "@karinjs/test",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Browser benchmark tests",
+  "scripts": {
+    "puppeteer": "tsx src/puppeteer-benchmark.ts",
+    "playwright": "tsx src/playwright-benchmark.ts"
+  },
+  "keywords": [],
+  "author": "shijin",
+  "license": "MIT",
+  "dependencies": {
+    "@karinjs/browser-finder": "workspace:*",
+    "@karinjs/puppeteer-core": "workspace:*",
+    "@karinjs/playwright-core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

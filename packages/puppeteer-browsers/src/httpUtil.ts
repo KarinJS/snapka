@@ -1,0 +1,88 @@
+/**
+ * @license
+ * Copyright 2023 Google Inc.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { URL } from 'node:url'
+import axios from '@karinjs/axios'
+import { createWriteStream } from 'node:fs'
+
+/**
+ * HEAD 请求判断 URL 是否存在
+ */
+export async function headHttpRequest (url: URL | string): Promise<boolean> {
+  try {
+    const response = await axios.head(url.toString(), {
+      validateStatus: (status) => status === 200,
+    })
+    return response.status === 200
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 下载文件，支持进度回调
+ */
+export async function downloadFile (
+  url: URL | string,
+  destinationPath: string,
+  progressCallback?: (downloadedBytes: number, totalBytes: number) => void
+): Promise<void> {
+  const response = await axios.get(url.toString(), {
+    responseType: 'stream',
+    onDownloadProgress: progressCallback
+      ? (progressEvent) => {
+        const totalBytes = progressEvent.total || 0
+        const downloadedBytes = progressEvent.loaded
+        progressCallback(downloadedBytes, totalBytes)
+      }
+      : undefined,
+    validateStatus: (status) => status >= 200 && status < 400,
+  })
+
+  if (response.status !== 200) {
+    throw new Error(`Download failed: server returned code ${response.status}. URL: ${url}`)
+  }
+
+  const file = createWriteStream(destinationPath)
+  response.data.pipe(file)
+
+  return new Promise<void>((resolve, reject) => {
+    file.on('close', resolve)
+    file.on('error', reject)
+  })
+}
+
+/**
+ * 获取 JSON 数据
+ */
+export async function getJSON (url: URL | string): Promise<unknown> {
+  try {
+    const response = await axios.get(url.toString(), {
+      validateStatus: (status) => status >= 200 && status < 400,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error('Could not parse JSON from ' + url.toString())
+  }
+}
+
+/**
+ * 获取文本数据
+ */
+export async function getText (url: URL | string): Promise<string> {
+  try {
+    const response = await axios.get(url.toString(), {
+      responseType: 'text',
+      validateStatus: (status) => status >= 200 && status < 400,
+    })
+    return String(response.data)
+  } catch (error: any) {
+    if (axios.isAxiosError(error) && error.response?.status) {
+      throw new Error(`Got status code ${error.response.status}`)
+    }
+    throw new Error('Failed to fetch text from ' + url.toString())
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@snapka/browsers",
+  "version": "2.10.13",
+  "description": "Download and launch browsers",
+  "scripts": {
+    "build": "tsc && tsdown"
+  },
+  "type": "module",
+  "bin": "src/main-cli.ts",
+  "exports": {
+    "types": "./src/main.ts",
+    "default": "./src/main.ts"
+  },
+  "keywords": [
+    "puppeteer",
+    "browsers"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karinjs/snapka.git",
+    "directory": "packages/puppeteer-browsers"
+  },
+  "author": "The Chromium Authors",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@karinjs/axios": "^1.13.2",
+    "@types/debug": "4.1.12",
+    "@types/decompress": "^4.2.7",
+    "@types/progress": "2.0.7",
+    "@types/semver": "^7.7.1",
+    "@types/ws": "8.18.1",
+    "@types/yargs": "17.0.33",
+    "debug": "^4.4.3",
+    "decompress": "^4.2.1",
+    "progress": "^2.0.3",
+    "semver": "^7.7.3",
+    "yargs": "^17.7.2"
+  }
+}

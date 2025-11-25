@@ -1,0 +1,21 @@
+{
+  "name": "@karinjs/puppeteer-core",
+  "version": "0.0.1",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "shijin",
+  "license": "MIT",
+  "devDependencies": {
+    "puppeteer-core": "^24.31.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    }
+  }
+}

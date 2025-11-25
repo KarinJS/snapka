@@ -1,0 +1,7 @@
+export * as colors from 'colors'
+export * as lockfile from 'proper-lockfile'
+export { default as progress } from 'progress'
+export { default as debug } from 'debug'
+export { SocksProxyAgent } from 'socks-proxy-agent'
+export { getProxyForUrl } from 'proxy-from-env'
+export { HttpsProxyAgent } from 'https-proxy-agent'
