@@ -1,6 +1,6 @@
 {
   "name": "@snapka/browsers",
-  "version": "2.10.13",
+  "version": "0.0.1",
   "description": "Download and launch browsers",
   "scripts": {
     "build": "tsc && tsdown"

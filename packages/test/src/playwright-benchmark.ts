@@ -1,7 +1,7 @@
 // Playwright 基准测试
 
-import { findBrowser, BrowserType } from '@karinjs/browser-finder'
-import { chromium } from '@karinjs/playwright-core'
+import { findBrowser, BrowserType } from '@snapka/browser-finder'
+import { chromium } from '@snapka/playwright-core'
 import { performance } from 'perf_hooks'
 import fs from 'fs'
 import path from 'path'

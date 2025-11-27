@@ -15,6 +15,6 @@
     "neostandard": "^0.12.2",
     "tsdown": "^0.16.6",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "6.0.0-dev.20251125"
   }
 }

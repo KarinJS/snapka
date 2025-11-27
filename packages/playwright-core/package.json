@@ -1,5 +1,5 @@
 {
-  "name": "@karinjs/playwright-core",
+  "name": "@snapka/playwright-core",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -11,26 +11,12 @@
   "author": "shijin",
   "license": "MIT",
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/decompress": "^4.2.7",
-    "@types/progress": "^2.0.7",
-    "@types/proper-lockfile": "^4.1.4",
-    "@types/proxy-from-env": "^1.0.4",
-    "colors": "^1.4.0",
-    "debug": "^4.4.3",
-    "decompress": "^4.2.1",
-    "https-proxy-agent": "^7.0.6",
-    "playwright": "^1.56.1",
-    "playwright-core": "^1.56.1",
-    "progress": "^2.0.3",
-    "proper-lockfile": "^4.1.2",
-    "proxy-from-env": "^1.1.0",
-    "socks-proxy-agent": "^8.0.5"
+    "playwright-core": "^1.56.1"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.mjs"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   }
 }

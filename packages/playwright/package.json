@@ -1,5 +1,5 @@
 {
-  "name": "@karinjs/playwright",
+  "name": "@snapka/playwright",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,7 @@
   "author": "shijin",
   "license": "MIT",
   "dependencies": {
-    "@karinjs/browser-finder": "workspace:*",
-    "@karinjs/playwright-core": "workspace:*"
+    "@snapka/browser-finder": "workspace:*",
+    "@snapka/playwright-core": "workspace:*"
   }
 }

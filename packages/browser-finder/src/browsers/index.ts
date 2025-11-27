@@ -50,7 +50,7 @@ export class SystemBrowserFinder {
    * @returns 返回所有找到的 Chrome 浏览器信息
    */
   async findChrome (): Promise<BrowserInfo[]> {
-    return this.findChrome()
+    return this.findChromeSync()
   }
 
   /**

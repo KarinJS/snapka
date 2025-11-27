@@ -64,7 +64,7 @@ export class BrowserFinder {
   async findChrome (): Promise<BrowserInfo[]> {
     return Promise.all([
       this.puppeteer.findChrome(),
-      this.system.findChromeSync(),
+      this.system.findChrome(),
     ]).then(results => results.flat().filter(Boolean) as BrowserInfo[])
   }
 

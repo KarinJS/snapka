@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>React TSX + Tailwind + esbuild-wasm</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React + ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- esbuild-wasm browser UMD version -->
+  <script src="/packages/test/html/react/browser.min.js"></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div id="root"></div>
+
+  <script>
+    (async () => {
+      // 初始化 esbuild-wasm
+      await esbuild.initialize({
+        wasmURL: '/packages/test/html/react/esbuild.wasm'
+      })
+
+      // TSX 源码
+      const tsxCode = `
+const App = () => {
+  const [count, setCount] = React.useState(0)
+  return (
+    <div className="p-6 max-w-sm bg-white rounded-xl shadow-md text-center">
+      <h1 className="text-2xl font-bold text-blue-600">Hello, qwqojs!</h1>
+      <p className="mt-4 text-gray-700">Count: {count}</p>
+      <button
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+        onClick={() => setCount(count + 1)}
+      >
+        Increment
+      </button>
+    </div>
+  )
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'))
+root.render(<App />)
+      `
+
+      // 编译 TSX -> JS
+      const result = await esbuild.transform(tsxCode, {
+        loader: 'tsx',
+        format: 'iife', // 可以直接插入 <script> 执行
+        target: 'es2020'
+      })
+
+      // 动态执行编译后的 JS
+      const script = document.createElement('script')
+      script.type = 'module'
+      script.textContent = result.code
+      document.body.appendChild(script)
+    })();
+  </script>
+</body>
+
+</html>

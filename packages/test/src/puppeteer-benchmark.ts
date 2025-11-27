@@ -1,7 +1,7 @@
 // Puppeteer 基准测试
 
-import { findBrowser, BrowserType } from '@karinjs/browser-finder'
-import puppeteer from '@karinjs/puppeteer-core'
+import { findBrowser, BrowserType } from '@snapka/browser-finder'
+import puppeteer from '@snapka/puppeteer-core'
 import { performance } from 'perf_hooks'
 import fs from 'fs'
 import path from 'path'

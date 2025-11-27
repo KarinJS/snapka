@@ -1,5 +1,5 @@
 {
-  "name": "@karinjs/test",
+  "name": "@snapka/test",
   "version": "0.0.1",
   "type": "module",
   "description": "Browser benchmark tests",
@@ -11,9 +11,9 @@
   "author": "shijin",
   "license": "MIT",
   "dependencies": {
-    "@karinjs/browser-finder": "workspace:*",
-    "@karinjs/puppeteer-core": "workspace:*",
-    "@karinjs/playwright-core": "workspace:*"
+    "@snapka/browser-finder": "workspace:*",
+    "@snapka/puppeteer-core": "workspace:*",
+    "@snapka/playwright-core": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

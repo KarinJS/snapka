@@ -86,3 +86,42 @@ export async function getText (url: URL | string): Promise<string> {
     throw new Error('Failed to fetch text from ' + url.toString())
   }
 }
+
+/**
+ * URL 探针：返回第一个符合状态码条件的 URL
+ * @param urls - 要检测的 URL 列表
+ * @param options - 配置选项
+ * @returns 第一个成功的 URL，如果全部失败则抛出错误
+ */
+export async function probeUrls (
+  urls: (URL | string)[],
+  options?: {
+    validStatusCodes?: number[]
+    timeout?: number
+  }
+): Promise<string> {
+  const { validStatusCodes = [200], timeout = 5000 } = options || {}
+
+  if (urls.length === 0) {
+    throw new Error('URL list cannot be empty')
+  }
+
+  const probePromises = urls.map(async (url) => {
+    try {
+      const response = await axios.head(url.toString(), {
+        timeout,
+        validateStatus: (status) => validStatusCodes.includes(status),
+      })
+
+      if (validStatusCodes.includes(response.status)) {
+        return url.toString()
+      }
+
+      throw new Error(`Invalid status code: ${response.status}`)
+    } catch (error: any) {
+      throw new Error(`Failed to probe ${url}: ${error.message}`)
+    }
+  })
+
+  return Promise.any(probePromises)
+}

@@ -1,95 +1,71 @@
-// 简化版：统计初始化耗时、每个文件耗时，重复 5 次，输出 JSON（TypeScript 版本）
+import { PuppeteerCore } from './core'
+import { SnapkaLaunch } from './launch'
+import puppeteer, { Browser } from '@snapka/puppeteer-core'
 
-import { findBrowser, BrowserType } from '@karinjs/browser-finder'
-import puppeteer from '@karinjs/puppeteer-core'
-import { performance } from 'perf_hooks'
-import fs from 'fs'
-import path from 'path'
+import type { PuppeteerLaunchOptions, PuppeteerConnectOptions } from './launch'
 
-const list = [
-  'D:/Github/snapka/packages/test/emoji-static.html',
-  'D:/Github/snapka/packages/test/image-static.html',
-  'D:/Github/snapka/packages/test/remote-css.html',
-  'D:/Github/snapka/packages/test/static-basic.html',
-  'D:/Github/snapka/packages/test/static-js-demo.html',
-]
+const browsers: Browser[] = []
 
-const ITERATIONS = 5
-
-function toFileUrl (p: string) {
-  return `file:///${p.replace(/\\/g, '/')}`
-}
-
-async function main () {
-  const chromeBrowser = await findBrowser(BrowserType.CHROME)
-  if (!chromeBrowser) throw new Error('未找到 Chrome 浏览器')
-
-  const report: any = {
-    generatedAt: new Date().toISOString(),
-    iterations: [] as any[],
-  }
-
-  // 初始化浏览器
-  const initStart = performance.now()
-  const browser = await puppeteer.launch({
-    executablePath: chromeBrowser.executablePath,
-    // headless: false,
-  })
-  const initEnd = performance.now()
-
-  report.browserInitMs = Math.round(initEnd - initStart)
-
-  for (let i = 1; i <= ITERATIONS; i++) {
-    const iterStart = performance.now()
-    const pages: any[] = []
-
-    for (const filePath of list) {
-      const pageStart = performance.now()
-      const page = await browser.newPage()
-
-      try {
-        await page.goto(toFileUrl(filePath))
-        const name = path.basename(filePath).replace(/\.[^.]+$/, '')
-        const screenshotPath = `puppeteer/${name}.iter${i}.png`
-
-        await page.screenshot({ path: screenshotPath, fullPage: true })
-
-        const pageEnd = performance.now()
-        pages.push({
-          file: filePath,
-          durationMs: Math.round(pageEnd - pageStart),
-          screenshot: screenshotPath,
-          status: 'success',
-        })
-      } catch (e: any) {
-        const pageEnd = performance.now()
-        pages.push({
-          file: filePath,
-          durationMs: Math.round(pageEnd - pageStart),
-          status: 'error',
-          message: e.message,
-        })
-      }
-
-      await page.close()
+export const snapka = {
+  /**
+   * 已启动的浏览器实例列表
+   */
+  browsers,
+  /**
+   * 启动一个新的浏览器实例
+   * @param options - 启动选项
+   * @returns PuppeteerCore 实例
+   */
+  launch: async (options: PuppeteerLaunchOptions) => {
+    const launcher = new SnapkaLaunch()
+    const executablePath = await launcher.getPath(options)
+    if (!executablePath) {
+      throw new Error('无法获取浏览器可执行文件路径，请检查配置项或手动指定 executablePath')
     }
 
-    const iterEnd = performance.now()
+    options.executablePath = executablePath
+    const headless = options.headless === 'shell' ? 'shell' : options.headless === 'new'
+    const browser = await puppeteer.launch({ ...options, headless })
+    browsers.push(browser)
 
-    report.iterations.push({
-      iteration: i,
-      totalMs: Math.round(iterEnd - iterStart),
-      pages,
-    })
-  }
+    // 创建重启函数
+    const restartFn = async () => {
+      const newBrowser = await puppeteer.launch({ ...options, headless })
+      // 替换 browsers 数组中的旧实例
+      const index = browsers.indexOf(browser)
+      if (index > -1) {
+        browsers[index] = newBrowser
+      } else {
+        browsers.push(newBrowser)
+      }
+      return newBrowser
+    }
 
-  fs.writeFileSync('puppeteer-report.json', JSON.stringify(report, null, 2), 'utf-8')
-  console.log('已生成 puppeteer-report.json')
+    return new PuppeteerCore(options, browser, restartFn)
+  },
+  /**
+   * 连接到一个已启动的浏览器实例
+   * @param options - 连接选项
+   * @returns PuppeteerCore 实例
+   */
+  connect: async (options: PuppeteerConnectOptions) => {
+    const browserURL = options.baseUrl || options.browserURL
+    const browser = await puppeteer.connect({ ...options, browserURL })
+    browsers.push(browser)
 
-  await browser.close()
+    // 创建重启函数（重新连接）
+    const restartFn = async () => {
+      const newBrowser = await puppeteer.connect({ ...options, browserURL })
+      // 替换 browsers 数组中的旧实例
+      const index = browsers.indexOf(browser)
+      if (index > -1) {
+        browsers[index] = newBrowser
+      } else {
+        browsers.push(newBrowser)
+      }
+      return newBrowser
+    }
+
+    return new PuppeteerCore(options, browser, restartFn)
+  },
 }
-
-main().catch(err => {
-  console.error(err)
-  process.exit(1)
-})

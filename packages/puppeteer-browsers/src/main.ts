@@ -50,3 +50,4 @@ export {
   type ComputeExecutablePathOptions,
 } from './Cache.js'
 export { BrowserTag } from './browser-data/types.js'
+export { probeUrls } from './httpUtil.js'

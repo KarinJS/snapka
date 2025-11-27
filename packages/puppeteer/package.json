@@ -1,17 +1,43 @@
 {
-  "name": "puppeteer",
+  "name": "@snapka/puppeteer",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "shijin",
   "license": "MIT",
   "dependencies": {
-    "@karinjs/browser-finder": "workspace:*",
-    "@karinjs/puppeteer-core": "workspace:*"
+    "@snapka/browser-finder": "workspace:*",
+    "@snapka/browsers": "workspace:*",
+    "@snapka/puppeteer-core": "workspace:*",
+    "@snapka/types": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./puppeteer-core": {
+      "types": "./src/puppeteer-core.ts",
+      "default": "./src/puppeteer-core.ts"
+    },
+    "./snapka-browser-finder": {
+      "types": "./src/snapka-browser-finder.ts",
+      "default": "./src/snapka-browser-finder.ts"
+    }
+  },
+  "devDependencies": {
+    "@types/jsdom": "^27.0.0",
+    "@vitest/coverage-c8": "^0.33.0",
+    "@vitest/coverage-v8": "^4.0.14",
+    "jsdom": "^27.2.0",
+    "p-limit": "^7.2.0",
+    "vitest": "^4.0.14"
   }
 }

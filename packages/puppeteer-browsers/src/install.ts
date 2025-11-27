@@ -267,6 +267,7 @@ async function installUrl (
   }
   let downloadProgressCallback = options.downloadProgressCallback
   if (downloadProgressCallback === 'default') {
+    console.log(`Download URL: ${url.toString()}`)
     downloadProgressCallback = await makeProgressCallback(
       options.browser,
       options.buildIdAlias ?? options.buildId

@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path'
-
+import axios from '@karinjs/axios'
 import { getText } from '../httpUtil.js'
 
 import { BrowserPlatform } from './types.js'
@@ -81,13 +81,36 @@ export function relativeExecutablePath (
 export async function resolveBuildId (
   platform: BrowserPlatform
 ): Promise<string> {
+  const baseUrl = `https://registry.npmmirror.com/-/binary/chromium-browser-snapshots/${folder(platform)}/`
+  const response = await axios.get<{ name: string }[]>(baseUrl).catch(() => null)
+  if (response) {
+    const versions = response.data?.[response?.data?.length - 1]?.name?.replace('/', '')
+    if (versions) return versions
+  }
+
   return await getText(
     new URL(
-      `https://storage.googleapis.com/chromium-browser-snapshots/${folder(
-        platform
-      )}/LAST_CHANGE`
+      `https://storage.googleapis.com/chromium-browser-snapshots/${folder(platform)}/LAST_CHANGE`
     )
-  )
+  ).catch(() => {
+    /**
+     * 做个兜底
+     * @time 2025年11月26日12:03:13
+     */
+    switch (platform) {
+      case BrowserPlatform.LINUX_ARM:
+      case BrowserPlatform.LINUX:
+        return '1550223'
+      case BrowserPlatform.MAC_ARM:
+        return '1550222'
+      case BrowserPlatform.MAC:
+        return '1550202'
+      case BrowserPlatform.WIN32:
+        return '1550212'
+      case BrowserPlatform.WIN64:
+        return '1550184'
+    }
+  })
 }
 
 export function compareVersions (a: string, b: string): number {

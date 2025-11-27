@@ -18,6 +18,8 @@
 - ✅ 移除 `proxy-agent`，使用 Axios 原生代理（支持 `HTTP_PROXY`/`HTTPS_PROXY` 环境变量）
 - ✅ 解压工具改为 `decompress`，移除 `tar-fs` 和 `extract-zip` 依赖
 - ✅ 包体积大幅缩减：约 **12 MB → 800 KB+**（数据来源：[pkg-size.dev](https://pkg-size.dev/@puppeteer/browsers)）
+- ✅ 新增 `probeUrls()` 工具函数，支持自动选择最快的镜像源
+- ✅ Chromium 版本解析失败时提供兜底版本号，避免下载中断
 
 ## 📋 环境要求
 
@@ -217,8 +219,13 @@ npx @snapka/browsers install chrome@120.0.6099.109
 npx @snapka/browsers install firefox@stable --platform mac --path ./browsers
 
 # 使用镜像源
-npx @snapka/browsers install chrome --base-url https://npm.taobao.org/mirrors
+npx @snapka/browsers install chrome --base-url https://example.com/mirrors
 ```
+
+镜像源参考:
+
+- chrome: `https://registry.npmmirror.com/-/binary/chrome-for-testing`
+- chromium: `https://registry.npmmirror.com/-/binary/chromium-browser-snapshots`
 
 ### launch
 
@@ -731,6 +738,58 @@ interface ProfileOptions {
   path?: string
 }
 ```
+
+#### probeUrls()
+
+URL 探针，返回第一个符合状态码条件的 URL。
+
+```typescript
+function probeUrls(
+  urls: (URL | string)[],
+  options?: {
+    validStatusCodes?: number[]
+    timeout?: number
+  }
+): Promise<string>
+```
+
+**参数**:
+
+- `urls` - 要检测的 URL 列表
+- `options` - （可选）配置选项
+  - `validStatusCodes` - 有效的状态码数组，默认 `[200]`
+  - `timeout` - 超时时间（毫秒），默认 `5000`
+
+**返回**: 第一个成功的 URL，如果全部失败则抛出错误
+
+**示例**:
+
+```typescript
+import { probeUrls } from '@snapka/browsers'
+
+// 使用默认配置（状态码 200，超时 5 秒）
+const fastestUrl = await probeUrls([
+  'https://registry.npmmirror.com/-/binary/chromium-browser-snapshots',
+  'https://storage.googleapis.com/chromium-browser-snapshots',
+  'https://example.com/mirror'
+])
+
+// 自定义状态码和超时
+const fastestUrl = await probeUrls(
+  ['url1', 'url2', 'url3'],
+  {
+    validStatusCodes: [200, 301, 302],
+    timeout: 10000
+  }
+)
+```
+
+**工作原理**:
+
+- 同时向所有 URL 发起 HEAD 请求
+- 返回第一个符合状态码条件的 URL
+- 使用 `Promise.any`，只要有一个成功就立即返回
+- 所有 URL 都失败时抛出错误
 
 ## 🌍 代理与镜像配置
 

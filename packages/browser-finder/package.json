@@ -1,12 +1,11 @@
 {
-  "name": "@karinjs/browser-finder",
-  "version": "0.1.1",
-  "description": "A simple utility to find installed browsers on the system.",
+  "name": "@snapka/browser-finder",
+  "version": "0.0.1",
+  "description": "cross-platform browser search module for puppeteer, playwright, and system",
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "test": "tsx src/index.test.ts",
-    "test:puppeteer": "tsx src/puppeteer/ci.github.test.ts"
+    "test": "tsx src/index.test.ts"
   },
   "keywords": [
     "browser",
