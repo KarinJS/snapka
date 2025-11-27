@@ -164,11 +164,11 @@ export class PuppeteerCore {
   /**
    * 执行页面截图
    * @param options - 截图配置选项
-   * @returns 包含截图执行函数和页面实例的对象
+   * @returns 包含截图执行函数、页面实例和浏览器实例的对象
    */
   async screenshot<T extends 'base64' | 'binary' = 'binary'> (
     options: SnapkaScreenshotOptions<T>
-  ): Promise<{ run: () => Promise<T extends 'base64' ? string : Uint8Array>, page: Page }> {
+  ): Promise<{ run: () => Promise<T extends 'base64' ? string : Uint8Array>, page: Page, browser: Browser }> {
     const retryCount = toInteger(options.retry, 1)
 
     return this.limit(async () => {
@@ -194,18 +194,18 @@ export class PuppeteerCore {
         }
       }
 
-      return { run, page }
+      return { run, page, browser: this.browser }
     })
   }
 
   /**
    * 执行分片截图
    * @param options - 分片截图配置选项
-   * @returns 包含截图执行函数和页面实例的对象
+   * @returns 包含截图执行函数、页面实例和浏览器实例的对象
    */
   async screenshotViewport<T extends 'base64' | 'binary' = 'binary'> (
     options: SnapkaScreenshotViewportOptions<T>
-  ): Promise<{ run: () => Promise<T extends 'base64' ? string[] : Uint8Array[]>, page: Page }> {
+  ): Promise<{ run: () => Promise<T extends 'base64' ? string[] : Uint8Array[]>, page: Page, browser: Browser }> {
     const retryCount = toInteger(options.retry, 1)
 
     return this.limit(async () => {
@@ -231,7 +231,7 @@ export class PuppeteerCore {
         }
       }
 
-      return { run, page }
+      return { run, page, browser: this.browser }
     })
   }
 

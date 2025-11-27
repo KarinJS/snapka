@@ -13,7 +13,8 @@
   "dependencies": {
     "@snapka/browser-finder": "workspace:*",
     "@snapka/puppeteer-core": "workspace:*",
-    "@snapka/playwright-core": "workspace:*"
+    "@snapka/playwright-core": "workspace:*",
+    "@snapka/puppeteer": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

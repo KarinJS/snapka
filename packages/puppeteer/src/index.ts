@@ -16,7 +16,7 @@ export const snapka = {
    * @param options - 启动选项
    * @returns PuppeteerCore 实例
    */
-  launch: async (options: PuppeteerLaunchOptions) => {
+  launch: async (options: PuppeteerLaunchOptions = {}) => {
     const launcher = new SnapkaLaunch()
     const executablePath = await launcher.getPath(options)
     if (!executablePath) {

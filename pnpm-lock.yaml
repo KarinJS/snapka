@@ -140,6 +140,9 @@ importers:
       '@snapka/playwright-core':
         specifier: workspace:*
         version: link:../playwright-core
+      '@snapka/puppeteer':
+        specifier: workspace:*
+        version: link:../puppeteer
       '@snapka/puppeteer-core':
         specifier: workspace:*
         version: link:../puppeteer-core
