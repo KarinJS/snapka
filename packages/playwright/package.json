@@ -2,7 +2,6 @@
   "name": "@snapka/playwright",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "build": "tsc && tsdown",
@@ -22,11 +21,17 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./playwright-core": {
+      "types": "./src/playwright-core.ts",
+      "default": "./src/playwright-core.ts"
+    },
+    "./snapka-browser-finder": {
+      "types": "./src/snapka-browser-finder.ts",
+      "default": "./src/snapka-browser-finder.ts"
     }
   },
   "devDependencies": {
-    "@types/jsdom": "^27.0.0",
-    "jsdom": "^27.2.0",
-    "p-limit": "^7.2.0"
+    "p-limit": "catalog:"
   }
 }

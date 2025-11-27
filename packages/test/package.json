@@ -14,7 +14,8 @@
     "@snapka/browser-finder": "workspace:*",
     "@snapka/puppeteer-core": "workspace:*",
     "@snapka/playwright-core": "workspace:*",
-    "@snapka/puppeteer": "workspace:*"
+    "@snapka/puppeteer": "workspace:*",
+    "@snapka/playwright": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

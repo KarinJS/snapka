@@ -1,2 +1,5 @@
 packages:
   - "packages/*"
+
+catalog:
+  p-limit: "7.2.0"
