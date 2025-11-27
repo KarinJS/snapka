@@ -34,10 +34,7 @@
   },
   "devDependencies": {
     "@types/jsdom": "^27.0.0",
-    "@vitest/coverage-c8": "^0.33.0",
-    "@vitest/coverage-v8": "^4.0.14",
     "jsdom": "^27.2.0",
-    "p-limit": "^7.2.0",
-    "vitest": "^4.0.14"
+    "p-limit": "^7.2.0"
   }
 }

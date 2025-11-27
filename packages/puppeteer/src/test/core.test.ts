@@ -100,6 +100,12 @@ describe('PuppeteerCore', () => {
       const instance = new PuppeteerCore(options, mockBrowser, mockRestartFn)
       expect(instance.executablePath()).toBe(null)
     })
+
+    it('should return null when executablePath is undefined', () => {
+      const options = {} as any
+      const instance = new PuppeteerCore(options, mockBrowser, mockRestartFn)
+      expect(instance.executablePath()).toBe(null)
+    })
   })
 
   describe('restart', () => {
@@ -112,6 +118,37 @@ describe('PuppeteerCore', () => {
       expect(mockBrowser.close).toHaveBeenCalled()
       expect(mockRestartFn).toHaveBeenCalled()
       expect((puppeteerCore as any).browser).toBe(newBrowser)
+    })
+
+    it('should not start idle check when pageMode is disposable', async () => {
+      const instance = new PuppeteerCore({ ...mockOptions, pageMode: 'disposable' }, mockBrowser, mockRestartFn)
+      const newBrowser = {} as any
+        ; (mockRestartFn as any).mockResolvedValue(newBrowser)
+
+      await instance.restart()
+
+      expect((instance as any).idleCheckTimer).toBeUndefined()
+    })
+
+    it('should handle browser close error gracefully', async () => {
+      const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+      const newBrowser = {} as any
+      const closeMock = vi.fn().mockRejectedValue(new Error('Close failed'))
+        ; (instance as any).browser.close = closeMock
+        ; (mockRestartFn as any).mockResolvedValue(newBrowser)
+
+      await instance.restart()
+
+      expect(closeMock).toHaveBeenCalled()
+      expect((instance as any).browser).toBe(newBrowser)
+    })
+  })
+
+  describe('close', () => {
+    it('should close browser and all pages', async () => {
+      await puppeteerCore.close()
+
+      expect(mockBrowser.close).toHaveBeenCalled()
     })
   })
 
@@ -151,6 +188,18 @@ describe('PuppeteerCore', () => {
 
       expect(mockPage.$).toHaveBeenCalledWith('#element')
       expect(mockPage.$).toHaveReturnedWith(expect.any(Object))
+    })
+
+    it('should throw error when element not found for screenshot', async () => {
+      const mockOptions: SnapkaScreenshotOptions<'binary'> = {
+        file: 'https://example.com',
+        selector: '#nonexistent',
+      }
+
+        ; (mockPage.$ as any).mockResolvedValue(null)
+
+      const result = await puppeteerCore.screenshot(mockOptions)
+      await expect(result.run()).rejects.toThrow('当前页面未找到任何可截图的元素')
     })
   })
 
@@ -293,6 +342,36 @@ describe('PuppeteerCore', () => {
       })
     })
 
+    describe('getPageGotoParams', () => {
+      it('should return default timeout when not provided', () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const result = (instance as any).getPageGotoParams()
+
+        expect(result.timeout).toBe(30000)
+      })
+
+      it('should use provided timeout when valid', () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const result = (instance as any).getPageGotoParams({ timeout: 5000 })
+
+        expect(result.timeout).toBe(5000)
+      })
+
+      it('should use default timeout when provided timeout is 0', () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const result = (instance as any).getPageGotoParams({ timeout: 0 })
+
+        expect(result.timeout).toBe(30000)
+      })
+
+      it('should use default timeout when provided timeout is negative', () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const result = (instance as any).getPageGotoParams({ timeout: -100 })
+
+        expect(result.timeout).toBe(30000)
+      })
+    })
+
     describe('normalizeQuality', () => {
       it('should set quality to undefined for PNG format', () => {
         const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
@@ -367,6 +446,181 @@ describe('PuppeteerCore', () => {
       })
     })
 
+    describe('private screenshot methods', () => {
+      it('should call screenshotFullPage', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const options: SnapkaScreenshotOptions<'binary'> = {
+          type: 'png',
+        }
+
+        await (instance as any).screenshotFullPage(mockPage, options)
+
+        expect(mockPage.screenshot).toHaveBeenCalledWith(options)
+      })
+
+      it('should call screenshotElement', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const options: SnapkaScreenshotOptions<'binary'> = {
+          selector: '#test',
+        }
+        const mockElement = {
+          screenshot: vi.fn().mockResolvedValue('data'),
+        }
+          ; (mockPage.$ as any).mockResolvedValue(mockElement)
+
+        const result = await (instance as any).screenshotElement(mockPage, options)
+
+        expect(mockElement.screenshot).toHaveBeenCalledWith(options)
+      })
+    })
+
+    describe('private wait methods', () => {
+      it('should call awaitSelector', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+          ; (mockPage.$ as any).mockResolvedValue({})
+
+        await (instance as any).awaitSelector(mockPage, '#test', 1000)
+
+        expect(mockPage.waitForSelector).toHaveBeenCalledWith('#test', { timeout: 1000 })
+      })
+
+      it('should call awaitFunction', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+
+        await (instance as any).awaitFunction(mockPage, 'test', 1000)
+
+        expect(mockPage.waitForFunction).toHaveBeenCalledWith('test', { timeout: 1000 })
+      })
+
+      it('should call awaitRequest', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+
+        await (instance as any).awaitRequest(mockPage, 'test', 1000)
+
+        expect(mockPage.waitForRequest).toHaveBeenCalledWith('test', { timeout: 1000 })
+      })
+
+      it('should call awaitResponse', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+
+        await (instance as any).awaitResponse(mockPage, 'test', 1000)
+
+        expect(mockPage.waitForResponse).toHaveBeenCalledWith('test', { timeout: 1000 })
+      })
+
+      it('should call checkElement', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+          ; (mockPage.$ as any).mockResolvedValue({})
+
+        const result = await (instance as any).checkElement(mockPage, '#test')
+
+        expect(result).toBe(true)
+      })
+
+      it('should return false when checkElement finds nothing', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+          ; (mockPage.$ as any).mockResolvedValue(null)
+
+        const result = await (instance as any).checkElement(mockPage, '#test')
+
+        expect(result).toBe(false)
+      })
+
+      it('should handle checkElement error gracefully', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+          ; (mockPage.$ as any).mockRejectedValue(new Error('Selector error'))
+
+        const result = await (instance as any).checkElement(mockPage, '#test')
+
+        expect(result).toBe(false)
+      })
+
+      it('should handle waitForResource timeout without throwing', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { })
+        const waitFn = vi.fn().mockRejectedValue(new Error('Timeout'))
+
+        await (instance as any).waitForResource(mockPage, waitFn, 'test resource', 1000)
+
+        expect(consoleSpy).toHaveBeenCalledWith('test resource 加载超时')
+        consoleSpy.mockRestore()
+      })
+    })
+
+    describe('cleanIdlePages', () => {
+      it('should clean expired pages', async () => {
+        const instance = new PuppeteerCore({
+          ...mockOptions,
+          pageIdleTimeout: 100, // Short timeout
+        } as any, mockBrowser, mockRestartFn)
+
+        // Add a page to pool
+        const page = { close: vi.fn().mockResolvedValue(undefined) } as any
+          ; (instance as any).pagePool.push(page)
+          ; (instance as any).pageIdleTimes.set(page, Date.now() - 200) // Expired
+
+        await (instance as any).cleanIdlePages()
+
+        expect((instance as any).pagePool).not.toContain(page)
+        expect(page.close).toHaveBeenCalled()
+      })
+
+      it('should not clean active pages', async () => {
+        const instance = new PuppeteerCore({
+          ...mockOptions,
+          pageIdleTimeout: 10000,
+        } as any, mockBrowser, mockRestartFn)
+
+        const page = { close: vi.fn().mockResolvedValue(undefined) } as any
+          ; (instance as any).pagePool.push(page)
+          ; (instance as any).pageIdleTimes.set(page, Date.now()) // Not expired
+
+        await (instance as any).cleanIdlePages()
+
+        expect((instance as any).pagePool).toContain(page)
+        expect(page.close).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('cleanIdlePages errors', () => {
+      it('should handle page close error gracefully', async () => {
+        const instance = new PuppeteerCore({
+          ...mockOptions,
+          pageIdleTimeout: 100,
+        } as any, mockBrowser, mockRestartFn)
+
+        const page = { close: vi.fn().mockRejectedValue(new Error('Close failed')) } as any
+          ; (instance as any).pagePool.push(page)
+          ; (instance as any).pageIdleTimes.set(page, Date.now() - 200)
+
+        await (instance as any).cleanIdlePages()
+
+        expect((instance as any).pagePool).not.toContain(page)
+        expect(page.close).toHaveBeenCalled()
+      })
+
+      it('should exercise filter callback with multiple pages', async () => {
+        const instance = new PuppeteerCore({
+          ...mockOptions,
+          pageIdleTimeout: 100,
+        } as any, mockBrowser, mockRestartFn)
+
+        const expiredPage = { close: vi.fn().mockResolvedValue(undefined) } as any
+        const activePage = { close: vi.fn().mockResolvedValue(undefined) } as any
+
+          ; (instance as any).pagePool.push(expiredPage, activePage)
+          ; (instance as any).pageIdleTimes.set(expiredPage, Date.now() - 200)
+          ; (instance as any).pageIdleTimes.set(activePage, Date.now())
+
+        await (instance as any).cleanIdlePages()
+
+        expect(expiredPage.close).toHaveBeenCalled()
+        expect(activePage.close).not.toHaveBeenCalled()
+        expect((instance as any).pagePool).toContain(activePage)
+        expect((instance as any).pagePool).not.toContain(expiredPage)
+      })
+    })
+
     describe('retryExecute', () => {
       it('should retry on failure', async () => {
         vi.useRealTimers() // Use real timers for this test
@@ -390,6 +644,16 @@ describe('PuppeteerCore', () => {
         await expect((instance as any).retryExecute(fn, 2, 'test'))
           .rejects.toThrow('test在 2 次尝试后仍然失败')
         vi.useFakeTimers() // Restore fake timers
+      }, 15000)
+
+      it('should handle unknown error', async () => {
+        vi.useRealTimers()
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const fn = vi.fn().mockRejectedValue(null) // No error object
+
+        await expect((instance as any).retryExecute(fn, 1, 'test'))
+          .rejects.toThrow('test在 1 次尝试后仍然失败: 未知错误')
+        vi.useFakeTimers()
       }, 15000)
     })
 
@@ -503,6 +767,30 @@ describe('PuppeteerCore', () => {
 
         expect((instance as any).pagePool).not.toContain(page)
         expect(page.close).toHaveBeenCalled()
+      })
+    })
+
+    describe('acquirePage', () => {
+      it('should create new page when pool is empty', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+
+        const page = await (instance as any).acquirePage()
+
+        expect(mockBrowser.newPage).toHaveBeenCalled()
+        expect((instance as any).activePages.has(page)).toBe(true)
+      })
+
+      it('should reuse page from pool', async () => {
+        const instance = new PuppeteerCore(mockOptions, mockBrowser, mockRestartFn)
+        const poolPage = mockPage;
+        (instance as any).pagePool.push(poolPage);
+        (instance as any).pageIdleTimes.set(poolPage, Date.now())
+
+        const page = await (instance as any).acquirePage()
+
+        expect(page).toBe(poolPage)
+        expect((instance as any).pageIdleTimes.has(poolPage)).toBe(false)
+        expect((instance as any).activePages.has(poolPage)).toBe(true)
       })
     })
   })

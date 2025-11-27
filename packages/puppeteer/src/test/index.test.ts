@@ -146,5 +146,20 @@ describe('index.ts', () => {
       expect(puppeteer.connect).toHaveBeenCalledTimes(2)
       expect(snapka.browsers).toContain(newBrowser)
     })
+
+    it('should add new browser to list if old one not found during restart', async () => {
+      await snapka.connect({} as any)
+      const restartFn = (PuppeteerCore as any).mock.calls[0][2]
+
+      // Manually remove browser from list to simulate it being gone
+      snapka.browsers.length = 0
+
+      const newBrowser = { close: vi.fn() }
+        ; (puppeteer.connect as any).mockResolvedValueOnce(newBrowser)
+
+      await restartFn()
+
+      expect(snapka.browsers).toContain(newBrowser)
+    })
   })
 })
