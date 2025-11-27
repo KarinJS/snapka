@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { SnapkaLaunch } from '../launch'
+import { SnapkaLaunch } from '../src/launch'
 import fs from 'node:fs'
 
 import { browserFinder } from '@snapka/browser-finder'

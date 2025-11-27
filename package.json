@@ -11,10 +11,12 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^18",
+    "@vitest/coverage-v8": "^4.0.14",
     "eslint": "^9.39.1",
     "neostandard": "^0.12.2",
     "tsdown": "^0.16.6",
     "tsup": "^8.5.1",
-    "typescript": "6.0.0-dev.20251125"
+    "typescript": "6.0.0-dev.20251125",
+    "vitest": "^4.0.14"
   }
 }

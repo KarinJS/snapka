@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { PuppeteerBrowserFinder } from './index'
+import { PuppeteerBrowserFinder } from '../src/puppeteer/index'
 import { Browser, computeExecutablePath } from '@snapka/browsers'
 
 // Mock dependencies

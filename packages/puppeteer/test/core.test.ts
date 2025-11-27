@@ -1,7 +1,8 @@
+/* eslint-disable @stylistic/indent */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { PuppeteerCore } from '../core'
+import { PuppeteerCore } from '../src/core'
 import type { Browser, Page } from '@snapka/puppeteer-core'
-import type { PuppeteerLaunchOptions } from '../launch'
+import type { PuppeteerLaunchOptions } from '../src/launch'
 import type { SnapkaScreenshotOptions, SnapkaScreenshotViewportOptions } from '@snapka/types'
 
 // 模拟依赖

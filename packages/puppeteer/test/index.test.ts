@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { snapka } from '../index'
-import { PuppeteerCore } from '../core'
+import { snapka } from '../src/index'
+import { PuppeteerCore } from '../src/core'
 import puppeteer from '@snapka/puppeteer-core'
 
 // Mock dependencies
-vi.mock('../launch', () => {
+vi.mock('../src/launch', () => {
   return {
     SnapkaLaunch: vi.fn(function () {
       return {
@@ -14,7 +14,7 @@ vi.mock('../launch', () => {
   }
 })
 
-vi.mock('../core', () => {
+vi.mock('../src/core', () => {
   return {
     PuppeteerCore: vi.fn(function () { return {} }),
   }
@@ -73,7 +73,7 @@ describe('index.ts', () => {
     })
 
     it('should throw error if executablePath is not found', async () => {
-      const { SnapkaLaunch } = await import('../launch');
+      const { SnapkaLaunch } = await import('../src/launch');
       (SnapkaLaunch as any).mockImplementationOnce(function () {
         return {
           getPath: vi.fn().mockResolvedValue(null),

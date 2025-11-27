@@ -8,10 +8,10 @@ export default defineConfig({
       enabled: true,
       reportsDirectory: 'coverage',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.d.ts'],
+      include: ['test/**/*.ts'],
+      exclude: ['test/**/*.d.ts'],
     },
-    environment: 'jsdom',
+    environment: 'node',
     alias: {
       '@': resolve(__dirname, 'src'),
     },

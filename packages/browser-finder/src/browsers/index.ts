@@ -117,7 +117,7 @@ export class SystemBrowserFinder {
    * @returns 返回所有找到的 Edge 浏览器信息
    */
   async findEdge (): Promise<BrowserInfo[]> {
-    return this.findEdge()
+    return this.findEdgeSync()
   }
 
   /**
@@ -142,7 +142,7 @@ export class SystemBrowserFinder {
    * @returns 返回所有找到的 Brave 浏览器信息
    */
   async findBrave (): Promise<BrowserInfo[]> {
-    return this.findBrave()
+    return this.findBraveSync()
   }
 }
 
