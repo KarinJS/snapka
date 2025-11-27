@@ -8,5 +8,9 @@
  * @returns 规范化后的路径
  */
 export function normalizePath (path: string): string {
-  return path.replaceAll('\\', '/')
+  const withForwardSlashes = path.replace(/\\/g, '/')
+  if (withForwardSlashes.startsWith('//')) {
+    return '//' + withForwardSlashes.substring(2).replace(/\/\/+/g, '/')
+  }
+  return withForwardSlashes.replace(/\/\/+/g, '/')
 }

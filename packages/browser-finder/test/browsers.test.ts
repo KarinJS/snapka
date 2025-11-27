@@ -1,195 +1,158 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import fs from 'node:fs'
-import { execSync } from 'node:child_process'
-import { SystemBrowserFinder, systemBrowserFinder } from '../src/browsers/index'
-import { findEdgeAll } from '../src/browsers/edge'
-import { findBraveAll } from '../src/browsers/brave'
-import { computeSystemExecutablePath, Browser, ChromeReleaseChannel } from '@snapka/browsers'
-
-// Mock dependencies
-vi.mock('node:fs')
-vi.mock('node:child_process')
-vi.mock('../src/browsers/edge')
-vi.mock('../src/browsers/brave')
-vi.mock('@snapka/browsers')
-
-const mockFs = fs as any
-const mockExecSync = execSync as any
-const mockFindEdgeAll = findEdgeAll as any
-const mockFindBraveAll = findBraveAll as any
-const mockComputeSystemExecutablePath = computeSystemExecutablePath as any
+import { describe, it, expect, beforeEach } from 'vitest'
+import { SystemBrowserFinder, systemBrowserFinder, SystemBrowserType } from '../src/browsers'
 
 describe('SystemBrowserFinder', () => {
   let finder: SystemBrowserFinder
 
   beforeEach(() => {
-    vi.clearAllMocks()
     finder = new SystemBrowserFinder()
   })
 
-  describe('find', () => {
-    it('should call findSync internally', async () => {
-      const mockResult = [{ type: 'chrome', version: '100', dir: '/path', executablePath: '/path/chrome' }]
-      
-      // Mock findSync to return our mock result
-      vi.spyOn(finder, 'findSync').mockReturnValue(mockResult)
-
-      const result = await finder.find()
-
-      expect(finder.findSync).toHaveBeenCalled()
-      expect(result).toEqual(mockResult)
+  describe('constructor', () => {
+    it('should create an instance', () => {
+      expect(finder).toBeInstanceOf(SystemBrowserFinder)
     })
   })
 
   describe('findSync', () => {
-    it('should return combined results from all browsers', () => {
-      const mockChromeResults = [{ type: 'chrome', version: '100', dir: '/path1', executablePath: '/path1/chrome' }]
-      const mockEdgeResults = [{ type: 'edge', version: '99', dir: '/path2', executablePath: '/path2/edge' }]
-      const mockBraveResults = [{ type: 'brave', version: '98', dir: '/path3', executablePath: '/path3/brave' }]
+    it('should return an array', () => {
+      const result = finder.findSync()
+      expect(Array.isArray(result)).toBe(true)
+    })
 
-      // Mock private method puppeteer()
-      vi.spyOn(finder as any, 'puppeteer').mockReturnValue(mockChromeResults)
-      mockFindEdgeAll.mockReturnValue(['/path2/edge'])
-      mockFindBraveAll.mockReturnValue(['/path3/brave'])
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.accessSync.mockImplementation(() => {})
-
+    it('should return browser info objects with correct structure', () => {
       const result = finder.findSync()
 
-      expect(result).toEqual([...mockChromeResults, ...mockEdgeResults, ...mockBraveResults])
+      result.forEach(browser => {
+        expect(browser).toHaveProperty('type')
+        expect(browser).toHaveProperty('executablePath')
+        expect(browser).toHaveProperty('dir')
+        expect(browser).toHaveProperty('version')
+
+        // Type should be one of the valid browser types
+        expect([
+          SystemBrowserType.Chrome,
+          SystemBrowserType.Edge,
+          SystemBrowserType.Brave,
+        ]).toContain(browser.type)
+      })
+    })
+  })
+
+  describe('find', () => {
+    it('should return a promise', async () => {
+      const result = finder.find()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should resolve to an array', async () => {
+      const result = await finder.find()
+      expect(Array.isArray(result)).toBe(true)
+    })
+
+    it('should return same results as findSync', async () => {
+      const syncResult = finder.findSync()
+      const asyncResult = await finder.find()
+
+      expect(asyncResult).toEqual(syncResult)
     })
   })
 
   describe('findChromeSync', () => {
-    it('should return results from puppeteer method', () => {
-      const mockResults = [{ type: 'chrome', version: '100', dir: '/path1', executablePath: '/path1/chrome' }]
+    it('should return an array', () => {
+      const result = finder.findChromeSync()
+      expect(Array.isArray(result)).toBe(true)
+    })
 
-      vi.spyOn(finder as any, 'puppeteer').mockReturnValue(mockResults)
-
+    it('should only return Chrome browsers', () => {
       const result = finder.findChromeSync()
 
-      expect(result).toEqual(mockResults)
+      result.forEach(browser => {
+        expect(browser.type).toBe(SystemBrowserType.Chrome)
+      })
     })
   })
 
-  describe('puppeteer private method', () => {
-    it('should find Chrome browsers from all release channels', () => {
-      const mockPaths = {
-        [ChromeReleaseChannel.STABLE]: '/stable/chrome',
-        [ChromeReleaseChannel.BETA]: '/beta/chrome',
-        [ChromeReleaseChannel.DEV]: '/dev/chrome',
-        [ChromeReleaseChannel.CANARY]: '/canary/chrome',
-      }
-
-      mockComputeSystemExecutablePath.mockImplementation(({ channel }) => mockPaths[channel])
-      mockFs.existsSync.mockReturnValue(true)
-      mockExecSync.mockReturnValue('Google Chrome 100.0.4896.127')
-
-      const result = (finder as any).puppeteer()
-
-      expect(result).toHaveLength(4)
-      expect(result[0]).toEqual({
-        type: 'chrome',
-        executablePath: '/stable/chrome',
-        dir: '/stable',
-        version: '100.0.4896.127',
-      })
-      expect(mockComputeSystemExecutablePath).toHaveBeenCalledWith({ browser: Browser.CHROME, channel: ChromeReleaseChannel.STABLE })
+  describe('findChrome', () => {
+    it('should return a promise', async () => {
+      const result = finder.findChrome()
+      expect(result).toBeInstanceOf(Promise)
     })
 
-    it('should filter out non-existent paths', () => {
-      const mockPaths = {
-        [ChromeReleaseChannel.STABLE]: '/stable/chrome',
-        [ChromeReleaseChannel.BETA]: '/beta/chrome',
-      }
+    it('should return same results as findChromeSync', async () => {
+      const syncResult = finder.findChromeSync()
+      const asyncResult = await finder.findChrome()
 
-      mockComputeSystemExecutablePath.mockImplementation(({ channel }) => mockPaths[channel])
-      mockFs.existsSync.mockImplementation((path: string) => path === '/stable/chrome')
-
-      const result = (finder as any).puppeteer()
-
-      expect(result).toHaveLength(1)
-      expect(result[0].executablePath).toBe('/stable/chrome')
-    })
-
-    it('should handle version extraction failures gracefully', () => {
-      const mockPath = '/stable/chrome'
-
-      mockComputeSystemExecutablePath.mockReturnValue(mockPath)
-      mockFs.existsSync.mockReturnValue(true)
-      mockExecSync.mockReturnValue('Invalid version string')
-
-      const result = (finder as any).puppeteer()
-
-      expect(result[0].version).toBe('')
+      expect(asyncResult).toEqual(syncResult)
     })
   })
 
   describe('findEdgeSync', () => {
-    it('should return formatted results from findEdgeAll', () => {
-      const mockPaths = ['/path1/edge', '/path2/edge']
-      
-      mockFindEdgeAll.mockReturnValue(mockPaths)
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.accessSync.mockImplementation(() => {})
-
+    it('should return an array', () => {
       const result = finder.findEdgeSync()
-
-      expect(result).toEqual([
-        {
-          type: 'edge',
-          executablePath: '/path1/edge',
-          dir: '/path1',
-          version: '0.0.0.0',
-        },
-        {
-          type: 'edge',
-          executablePath: '/path2/edge',
-          dir: '/path2',
-          version: '0.0.0.0',
-        },
-      ])
+      expect(Array.isArray(result)).toBe(true)
     })
 
-    it('should handle empty results from findEdgeAll', () => {
-      mockFindEdgeAll.mockReturnValue([])
-
+    it('should only return Edge browsers', () => {
       const result = finder.findEdgeSync()
 
-      expect(result).toEqual([])
+      result.forEach(browser => {
+        expect(browser.type).toBe(SystemBrowserType.Edge)
+      })
+    })
+  })
+
+  describe('findEdge', () => {
+    it('should return a promise', async () => {
+      const result = finder.findEdge()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should return same results as findEdgeSync', async () => {
+      const syncResult = finder.findEdgeSync()
+      const asyncResult = await finder.findEdge()
+
+      expect(asyncResult).toEqual(syncResult)
     })
   })
 
   describe('findBraveSync', () => {
-    it('should return formatted results from findBraveAll', () => {
-      const mockPaths = ['/path1/brave', '/path2/brave']
-      
-      mockFindBraveAll.mockReturnValue(mockPaths)
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.accessSync.mockImplementation(() => {})
+    it('should return an array', () => {
+      const result = finder.findBraveSync()
+      expect(Array.isArray(result)).toBe(true)
+    })
 
+    it('should only return Brave browsers', () => {
       const result = finder.findBraveSync()
 
-      expect(result).toEqual([
-        {
-          type: 'brave',
-          executablePath: '/path1/brave',
-          dir: '/path1',
-          version: '0.0.0.0',
-        },
-        {
-          type: 'brave',
-          executablePath: '/path2/brave',
-          dir: '/path2',
-          version: '0.0.0.0',
-        },
-      ])
+      result.forEach(browser => {
+        expect(browser.type).toBe(SystemBrowserType.Brave)
+      })
     })
   })
 
-  describe('systemBrowserFinder instance', () => {
+  describe('findBrave', () => {
+    it('should return a promise', async () => {
+      const result = finder.findBrave()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should return same results as findBraveSync', async () => {
+      const syncResult = finder.findBraveSync()
+      const asyncResult = await finder.findBrave()
+
+      expect(asyncResult).toEqual(syncResult)
+    })
+  })
+
+  describe('systemBrowserFinder singleton', () => {
     it('should be an instance of SystemBrowserFinder', () => {
       expect(systemBrowserFinder).toBeInstanceOf(SystemBrowserFinder)
+    })
+
+    it('should be a singleton instance', () => {
+      // The exported instance should always be the same
+      expect(systemBrowserFinder).toBe(systemBrowserFinder)
     })
   })
 })

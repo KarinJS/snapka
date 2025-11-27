@@ -17,8 +17,8 @@ export class PuppeteerBrowserFinder {
     if (!fs.existsSync(baseDir)) return []
 
     /** 读取目录下的所有文件夹列表 */
+    const files = await fs.promises.readdir(baseDir, { withFileTypes: true }).catch(() => [])
     const results: BrowserInfo[] = []
-    const files = await fs.promises.readdir(baseDir, { withFileTypes: true })
     await Promise.all(files.map(async (file) => {
       // 文件夹名称: win64-131.0.6778.87
       if (!file.isDirectory()) return
@@ -50,8 +50,14 @@ export class PuppeteerBrowserFinder {
     if (!fs.existsSync(baseDir)) return []
 
     /** 读取目录下的所有文件夹列表 */
+    let files: fs.Dirent[]
+    try {
+      files = fs.readdirSync(baseDir, { withFileTypes: true })
+    } catch (e) {
+      return []
+    }
+
     const results: BrowserInfo[] = []
-    const files = fs.readdirSync(baseDir, { withFileTypes: true })
     for (const file of files) {
       // 文件夹名称: win64-131.0.6778.87
       if (!file.isDirectory()) continue

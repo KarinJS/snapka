@@ -109,6 +109,18 @@ async function getVersionFromMacOS (executablePath: string): Promise<string | un
 /**
  * 从文件名推断浏览器版本(不需要执行浏览器)
  */
+export function getVersion (filePath: string): string | undefined {
+  // This regex is designed to find version-like strings in a path.
+  // It looks for patterns like 1.2.3, 1.2.3.4, 1.2-5, 1.2.3-alpha, etc.
+  const versionRegex = /\d+\.\d+(?:[\.\-][\w\d\.]+)*(?:-[\w\d\.]*)?/g
+  const matches = filePath.match(versionRegex)
+  if (matches && matches.length > 0) {
+    // Return the last match, as it's the most likely to be the correct version number
+    return matches[matches.length - 1]
+  }
+  return undefined
+}
+
 export async function getBrowserVersion (executablePath: string): Promise<string | undefined> {
   try {
     await fs.promises.access(executablePath, fs.constants.R_OK)

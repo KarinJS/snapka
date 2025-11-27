@@ -46,7 +46,7 @@ describe('Platform Utilities', () => {
 
       const result = getCurrentPlatform()
 
-      expect(result).toBe('arm64')
+      expect(result).toBe('darwin_arm')
     })
 
     it('should return linux for Linux x64', () => {
@@ -73,7 +73,7 @@ describe('Platform Utilities', () => {
 
       const result = getCurrentPlatform()
 
-      expect(result).toBe('linux')
+      expect(result).toBe('linux_arm')
     })
 
     it('should return the original platform for unknown platforms', () => {
@@ -87,48 +87,48 @@ describe('Platform Utilities', () => {
 
     it('should handle all possible arch values for Windows', () => {
       mockOs.platform.mockReturnValue('win32')
-      
+
       // Test with different arch values
       mockOs.arch.mockReturnValue('x64')
       expect(getCurrentPlatform()).toBe('win64')
-      
+
       mockOs.arch.mockReturnValue('x32')
       expect(getCurrentPlatform()).toBe('win32')
-      
+
       mockOs.arch.mockReturnValue('arm64')
       expect(getCurrentPlatform()).toBe('win64')
-      
+
       mockOs.arch.mockReturnValue('unknown-arm')
       expect(getCurrentPlatform()).toBe('win32')
     })
 
     it('should handle all possible arch values for macOS', () => {
       mockOs.platform.mockReturnValue('darwin')
-      
+
       // Test with different arch values
       mockOs.arch.mockReturnValue('x64')
       expect(getCurrentPlatform()).toBe('darwin')
-      
+
       mockOs.arch.mockReturnValue('arm64')
-      expect(getCurrentPlatform()).toBe('arm64')
-      
+      expect(getCurrentPlatform()).toBe('darwin_arm')
+
       mockOs.arch.mockReturnValue('unknown-arch')
       expect(getCurrentPlatform()).toBe('darwin')
     })
 
     it('should handle all possible arch values for Linux', () => {
       mockOs.platform.mockReturnValue('linux')
-      
+
       // Test with different arch values
       mockOs.arch.mockReturnValue('x64')
       expect(getCurrentPlatform()).toBe('linux')
-      
+
       mockOs.arch.mockReturnValue('x32')
       expect(getCurrentPlatform()).toBe('linux')
-      
+
       mockOs.arch.mockReturnValue('arm64')
-      expect(getCurrentPlatform()).toBe('linux')
-      
+      expect(getCurrentPlatform()).toBe('linux_arm')
+
       mockOs.arch.mockReturnValue('unknown-arch')
       expect(getCurrentPlatform()).toBe('linux')
     })

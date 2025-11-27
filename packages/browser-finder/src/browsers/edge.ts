@@ -9,8 +9,9 @@ import type { PlatformValue } from './types'
 
 /**
  * 从Windows注册表中查找Edge浏览器路径
+ * @internal 用于测试
  */
-const findEdgeFromRegistry = (): string[] => {
+export const findEdgeFromRegistry = (): string[] => {
   if (os.platform() !== 'win32') return []
 
   const keys = [
@@ -40,8 +41,9 @@ const findEdgeFromRegistry = (): string[] => {
 
 /**
  * 从环境变量PATH中查找Edge浏览器
+ * @internal 用于测试
  */
-const findEdgeFromPath = (): string[] => {
+export const findEdgeFromPath = (): string[] => {
   try {
     const envPath = process.env.PATH || ''
     const pathDirs = envPath.split(path.delimiter).filter(Boolean)

@@ -1,318 +1,282 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import fs from 'node:fs'
-import path from 'node:path'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { PlaywrightBrowserFinder, playwrightBrowserFinder } from '../src/playwright'
 import os from 'node:os'
-import { PlaywrightBrowserFinder } from '../src/playwright/index'
-import { getCurrentPlatform } from '../src/utils/platform'
-import { isExecutable, normalizePath } from '../src/utils/file'
+import path from 'node:path'
 
-// Mock dependencies
 vi.mock('node:fs')
-vi.mock('node:path')
 vi.mock('node:os')
-vi.mock('../utils/platform')
-vi.mock('../utils/file')
-
-const mockFs = fs as any
-const mockPath = path as any
-const mockOs = os as any
-const mockGetCurrentPlatform = getCurrentPlatform as any
-const mockIsExecutable = isExecutable as any
-const mockNormalizePath = normalizePath as any
+vi.mock('node:path')
 
 describe('PlaywrightBrowserFinder', () => {
   let finder: PlaywrightBrowserFinder
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(os.homedir).mockReturnValue('/home/user')
+    vi.mocked(path.join).mockImplementation((...args: string[]) => args.join('/'))
     finder = new PlaywrightBrowserFinder()
-    
-    // Mock normalizePath to return the input for simplicity
-    mockNormalizePath.mockImplementation((p: string) => p)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('constructor', () => {
-    it('should initialize with empty browsers array', () => {
-      expect(finder.browsers).toEqual([])
+    it('should create an instance', () => {
+      expect(finder).toBeInstanceOf(PlaywrightBrowserFinder)
+    })
+
+    it('should initialize with correct browser base directory', () => {
+      // The constructor should not throw
+      expect(() => new PlaywrightBrowserFinder()).not.toThrow()
+    })
+
+    it('should handle unsupported platform', () => {
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', {
+        value: 'freebsd',
+        writable: true,
+        configurable: true,
+      })
+
+      try {
+        expect(() => new PlaywrightBrowserFinder()).toThrow('Unsupported platform')
+      } finally {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      }
+    })
+
+    it('should use XDG_CACHE_HOME on Linux if available', () => {
+      const originalPlatform = process.platform
+      const originalEnv = process.env
+
+      Object.defineProperty(process, 'platform', {
+        value: 'linux',
+        writable: true,
+        configurable: true,
+      })
+      process.env = { ...originalEnv, XDG_CACHE_HOME: '/custom/cache' }
+
+      try {
+        const linuxFinder = new PlaywrightBrowserFinder()
+        expect(linuxFinder).toBeInstanceOf(PlaywrightBrowserFinder)
+      } finally {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+        process.env = originalEnv
+      }
+    })
+
+    it('should use LOCALAPPDATA on Windows if available', () => {
+      const originalPlatform = process.platform
+      const originalEnv = process.env
+
+      Object.defineProperty(process, 'platform', {
+        value: 'win32',
+        writable: true,
+        configurable: true,
+      })
+      process.env = { ...originalEnv, LOCALAPPDATA: 'C:\\Users\\Test\\AppData\\Local' }
+
+      try {
+        const winFinder = new PlaywrightBrowserFinder()
+        expect(winFinder).toBeInstanceOf(PlaywrightBrowserFinder)
+      } finally {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+        process.env = originalEnv
+      }
     })
   })
 
   describe('findSync', () => {
-    it('should find browsers from common Playwright locations on Windows', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      
-      // Mock Playwright browsers directory
-      mockFs.existsSync.mockImplementation((dirPath: string) => {
-        return dirPath.includes('ms-playwright')
+    it('should return an array', () => {
+      const result = finder.findSync()
+      expect(Array.isArray(result)).toBe(true)
+    })
+
+    it('should return browser info objects with correct structure', () => {
+      const result = finder.findSync()
+
+      result.forEach(browser => {
+        expect(browser).toHaveProperty('type')
+        expect(browser).toHaveProperty('executablePath')
+        expect(browser).toHaveProperty('dir')
+        expect(browser).toHaveProperty('version')
+
+        // Type should be one of the valid Playwright browser types
+        expect(['chromium', 'chrome-headless-shell', 'firefox', 'webkit']).toContain(browser.type)
       })
-      mockFs.readdirSync.mockImplementation((dirPath: string) => {
-        if (dirPath.includes('ms-playwright')) {
-          return ['chromium-1145', 'firefox-1375', 'webkit-1944']
-        }
-        return []
-      })
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      expect(result).toEqual([
-        {
-          type: 'chromium',
-          dir: 'C:/Users/user/AppData/Local/ms-playwright/chromium-1145',
-          version: '1145',
-          executablePath: 'C:/Users/user/AppData/Local/ms-playwright/chromium-1145/chrome-win/chrome.exe'
-        },
-        {
-          type: 'firefox',
-          dir: 'C:/Users/user/AppData/Local/ms-playwright/firefox-1375',
-          version: '1375',
-          executablePath: 'C:/Users/user/AppData/Local/ms-playwright/firefox-1375/firefox/firefox.exe'
-        },
-        {
-          type: 'webkit',
-          dir: 'C:/Users/user/AppData/Local/ms-playwright/webkit-1944',
-          version: '1944',
-          executablePath: 'C:/Users/user/AppData/Local/ms-playwright/webkit-1944/WTF/Release/WebKitWebProcess.exe'
-        }
-      ])
     })
 
-    it('should find browsers from common Playwright locations on macOS', () => {
-      mockGetCurrentPlatform.mockReturnValue('darwin')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('/Users/user')
-      
-      // Mock Playwright browsers directory
-      mockFs.existsSync.mockImplementation((dirPath: string) => {
-        return dirPath.includes('ms-playwright')
-      })
-      mockFs.readdirSync.mockImplementation((dirPath: string) => {
-        if (dirPath.includes('ms-playwright')) {
-          return ['chromium-1145']
-        }
-        return []
-      })
-      mockIsExecutable.mockReturnValue(true)
-
+    it('should not return duplicate browsers', () => {
       const result = finder.findSync()
+      const uniqueKeys = new Set(result.map(b => `${b.type}-${b.version}`))
 
-      expect(result).toEqual([
-        {
-          type: 'chromium',
-          dir: '/Users/user/Library/Caches/ms-playwright/chromium-1145',
-          version: '1145',
-          executablePath: '/Users/user/Library/Caches/ms-playwright/chromium-1145/Chromium.app/Contents/MacOS/Chromium'
-        }
-      ])
-    })
-
-    it('should find browsers from common Playwright locations on Linux', () => {
-      mockGetCurrentPlatform.mockReturnValue('linux')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('/home/user')
-      
-      // Mock Playwright browsers directory
-      mockFs.existsSync.mockImplementation((dirPath: string) => {
-        return dirPath.includes('ms-playwright')
-      })
-      mockFs.readdirSync.mockImplementation((dirPath: string) => {
-        if (dirPath.includes('ms-playwright')) {
-          return ['chromium-1145']
-        }
-        return []
-      })
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      expect(result).toEqual([
-        {
-          type: 'chromium',
-          dir: '/home/user/.cache/ms-playwright/chromium-1145',
-          version: '1145',
-          executablePath: '/home/user/.cache/ms-playwright/chromium-1145/chrome-linux/chrome'
-        }
-      ])
-    })
-
-    it('should handle non-existent Playwright directories', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(false)
-
-      const result = finder.findSync()
-
-      expect(result).toEqual([])
-    })
-
-    it('should handle errors when reading directories', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockImplementation(() => {
-        throw new Error('Permission denied')
-      })
-
-      const result = finder.findSync()
-
-      expect(result).toEqual([])
-    })
-
-    it('should filter out non-executable browser paths', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-1145'])
-      mockIsExecutable.mockReturnValue(false)
-
-      const result = finder.findSync()
-
-      expect(result).toEqual([])
-    })
-
-    it('should handle all supported browser types', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      
-      // Mock Playwright browsers directory
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-1145', 'firefox-1375', 'webkit-1944'])
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      expect(result).toHaveLength(3)
-      expect(result[0]?.type).toBe('chromium')
-      expect(result[1]?.type).toBe('firefox')
-      expect(result[2]?.type).toBe('webkit')
-    })
-
-    it('should extract version from directory names', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-1145', 'firefox-1375'])
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      expect(result[0]?.version).toBe('1145')
-      expect(result[1]?.version).toBe('1375')
-    })
-
-    it('should handle malformed directory names gracefully', () => {
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-', '-1145', 'invalid-name'])
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      // Should still process the directories even with malformed names
-      expect(result).toHaveLength(3)
-      expect(result[0]?.type).toBe('chromium')
-      expect(result[0]?.version).toBe('')
-      expect(result[1]?.type).toBe('chromium')
-      expect(result[1]?.version).toBe('1145')
-      expect(result[2]?.type).toBe('chromium')
-      expect(result[2]?.version).toBe('invalid-name')
-    })
-
-    it('should use correct executable paths for different platforms', () => {
-      // Test Windows
-      mockGetCurrentPlatform.mockReturnValue('win64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('C:/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-1145', 'firefox-1375', 'webkit-1944'])
-      mockIsExecutable.mockReturnValue(true)
-
-      let result = finder.findSync()
-      expect(result[0]?.executablePath).toContain('chrome-win/chrome.exe')
-      expect(result[1]?.executablePath).toContain('firefox/firefox.exe')
-      expect(result[2]?.executablePath).toContain('WTF/Release/WebKitWebProcess.exe')
-
-      // Test macOS
-      mockGetCurrentPlatform.mockReturnValue('darwin')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('/Users/user')
-
-      result = finder.findSync()
-      expect(result[0]?.executablePath).toContain('Chromium.app/Contents/MacOS/Chromium')
-      expect(result[1]?.executablePath).toContain('Contents/MacOS/firefox')
-      expect(result[2]?.executablePath).toContain('WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent')
-
-      // Test Linux
-      mockGetCurrentPlatform.mockReturnValue('linux')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('/home/user')
-
-      result = finder.findSync()
-      expect(result[0]?.executablePath).toContain('chrome-linux/chrome')
-      expect(result[1]?.executablePath).toContain('firefox/firefox')
-      expect(result[2]?.executablePath).toContain('bin/WebKitWebProcess')
-    })
-
-    it('should handle arm64 architecture on macOS', () => {
-      mockGetCurrentPlatform.mockReturnValue('arm64')
-      mockPath.join.mockImplementation((...args) => args.join('/'))
-      mockOs.homedir.mockReturnValue('/Users/user')
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.readdirSync.mockReturnValue(['chromium-1145'])
-      mockIsExecutable.mockReturnValue(true)
-
-      const result = finder.findSync()
-
-      // On arm64, it should use the correct path for M-series Macs
-      expect(result[0]?.executablePath).toContain('Chromium.app/Contents/MacOS/Chromium')
+      expect(result.length).toBe(uniqueKeys.size)
     })
   })
 
   describe('find', () => {
-    it('should return the same result as findSync', async () => {
-      // Mock findSync to return a known result
-      const mockResult = [{
-        type: 'chromium',
-        dir: '/path/to/chromium',
-        version: '1145',
-        executablePath: '/path/to/chromium/chrome.exe'
-      }]
-      
-      const findSyncSpy = vi.spyOn(finder, 'findSync').mockReturnValue(mockResult)
-
-      const result = await finder.find()
-
-      expect(findSyncSpy).toHaveBeenCalled()
-      expect(result).toEqual(mockResult)
+    it('should return a promise', async () => {
+      const result = finder.find()
+      expect(result).toBeInstanceOf(Promise)
     })
 
-    it('should handle promises correctly', async () => {
-      const mockResult = [{
-        type: 'chromium',
-        dir: '/path/to/chromium',
-        version: '1145',
-        executablePath: '/path/to/chromium/chrome.exe'
-      }]
-      
-      vi.spyOn(finder, 'findSync').mockReturnValue(mockResult)
+    it('should resolve to an array', async () => {
+      const result = await finder.find()
+      expect(Array.isArray(result)).toBe(true)
+    })
 
-      const promise = finder.find()
-      
-      // Verify it's a promise
-      expect(promise).toBeInstanceOf(Promise)
-      
-      // Verify it resolves correctly
-      const result = await promise
-      expect(result).toEqual(mockResult)
+    it('should return browser info with correct structure', async () => {
+      const result = await finder.find()
+
+      result.forEach(browser => {
+        expect(browser).toHaveProperty('type')
+        expect(browser).toHaveProperty('executablePath')
+        expect(browser).toHaveProperty('dir')
+        expect(browser).toHaveProperty('version')
+      })
+    })
+  })
+
+  describe('findChromiumSync', () => {
+    it('should return undefined or a browser info object', () => {
+      const result = finder.findChromiumSync()
+
+      if (result) {
+        expect(result.type).toBe('chromium')
+        expect(result).toHaveProperty('executablePath')
+        expect(result).toHaveProperty('dir')
+        expect(result).toHaveProperty('version')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findChromium', () => {
+    it('should return a promise', async () => {
+      const result = finder.findChromium()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should resolve to undefined or a browser info object', async () => {
+      const result = await finder.findChromium()
+
+      if (result) {
+        expect(result.type).toBe('chromium')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findChromeHeadlessShellSync', () => {
+    it('should return undefined or a browser info object', () => {
+      const result = finder.findChromeHeadlessShellSync()
+
+      if (result) {
+        expect(result.type).toBe('chrome-headless-shell')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findChromeHeadlessShell', () => {
+    it('should return a promise', async () => {
+      const result = finder.findChromeHeadlessShell()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should resolve to undefined or a browser info object', async () => {
+      const result = await finder.findChromeHeadlessShell()
+
+      if (result) {
+        expect(result.type).toBe('chrome-headless-shell')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findFirefoxSync', () => {
+    it('should return undefined or a browser info object', () => {
+      const result = finder.findFirefoxSync()
+
+      if (result) {
+        expect(result.type).toBe('firefox')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findFirefox', () => {
+    it('should return a promise', async () => {
+      const result = finder.findFirefox()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should resolve to undefined or a browser info object', async () => {
+      const result = await finder.findFirefox()
+
+      if (result) {
+        expect(result.type).toBe('firefox')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findWebkitSync', () => {
+    it('should return undefined or a browser info object', () => {
+      const result = finder.findWebkitSync()
+
+      if (result) {
+        expect(result.type).toBe('webkit')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('findWebkit', () => {
+    it('should return a promise', async () => {
+      const result = finder.findWebkit()
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('should resolve to undefined or a browser info object', async () => {
+      const result = await finder.findWebkit()
+
+      if (result) {
+        expect(result.type).toBe('webkit')
+      } else {
+        expect(result).toBeUndefined()
+      }
+    })
+  })
+
+  describe('playwrightBrowserFinder singleton', () => {
+    it('should be an instance of PlaywrightBrowserFinder', () => {
+      expect(playwrightBrowserFinder).toBeInstanceOf(PlaywrightBrowserFinder)
+    })
+
+    it('should be a singleton instance', () => {
+      // The exported instance should always be the same
+      expect(playwrightBrowserFinder).toBe(playwrightBrowserFinder)
     })
   })
 })

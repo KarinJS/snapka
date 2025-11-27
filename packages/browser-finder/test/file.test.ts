@@ -1,176 +1,381 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import fs from 'node:fs'
-import { isExecutable, isDirectory, getVersion, normalizePath } from '../src/utils/file'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as fs from 'fs'
+import { execFile } from 'child_process'
+import {
+  isExecutable,
+  isDirectory,
+  getVersion,
+  getBrowserVersion,
+  isExecutableSync,
+  isDirectorySync,
+} from '../src/utils/file'
 
-// Mock dependencies
-vi.mock('node:fs')
+vi.mock('fs')
+vi.mock('child_process', () => ({
+  execFile: vi.fn(),
+}))
+vi.mock('util', () => ({
+  promisify: vi.fn((fn) => fn),
+}))
 
-const mockFs = fs as any
-
-describe('File Utilities', () => {
+describe('file utils', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('isExecutable', () => {
-    it('should return true for executable files', () => {
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.accessSync.mockImplementation(() => {})
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
-      const result = isExecutable('/path/to/executable')
+  describe('isExecutable', () => {
+    it('should return true when file is executable', async () => {
+      vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+
+      const result = await isExecutable('/path/to/executable')
 
       expect(result).toBe(true)
+      expect(fs.promises.access).toHaveBeenCalledWith('/path/to/executable', fs.constants.X_OK)
     })
 
-    it('should return false for non-existent files', () => {
-      mockFs.existsSync.mockReturnValue(false)
+    it('should return false when file is not executable', async () => {
+      vi.mocked(fs.promises.access).mockRejectedValue(new Error('Not executable'))
 
-      const result = isExecutable('/path/to/nonexistent')
+      const result = await isExecutable('/path/to/file')
 
       expect(result).toBe(false)
     })
+  })
 
-    it('should return false for non-executable files', () => {
-      mockFs.existsSync.mockReturnValue(true)
-      mockFs.accessSync.mockImplementation(() => {
-        throw new Error('Permission denied')
-      })
+  describe('isExecutableSync', () => {
+    it('should return true when file is executable', () => {
+      vi.mocked(fs.accessSync).mockReturnValue(undefined)
 
-      const result = isExecutable('/path/to/nonexecutable')
+      const result = isExecutableSync('/path/to/executable')
 
-      expect(result).toBe(false)
+      expect(result).toBe(true)
+      expect(fs.accessSync).toHaveBeenCalledWith('/path/to/executable', fs.constants.X_OK)
     })
 
-    it('should handle all exceptions gracefully', () => {
-      mockFs.existsSync.mockImplementation(() => {
-        throw new Error('Unexpected error')
+    it('should return false when file is not executable', () => {
+      vi.mocked(fs.accessSync).mockImplementation(() => {
+        throw new Error('Not executable')
       })
 
-      const result = isExecutable('/path/to/file')
+      const result = isExecutableSync('/path/to/file')
 
       expect(result).toBe(false)
     })
   })
 
   describe('isDirectory', () => {
-    it('should return true for directories', () => {
-      mockFs.statSync.mockImplementation(() => ({
-        isDirectory: () => true
-      }))
+    it('should return true when path is a directory', async () => {
+      const mockStat = { isDirectory: () => true }
+      vi.mocked(fs.promises.stat).mockResolvedValue(mockStat as any)
 
-      const result = isDirectory('/path/to/directory')
+      const result = await isDirectory('/path/to/dir')
 
       expect(result).toBe(true)
+      expect(fs.promises.stat).toHaveBeenCalledWith('/path/to/dir')
     })
 
-    it('should return false for files', () => {
-      mockFs.statSync.mockImplementation(() => ({
-        isDirectory: () => false
-      }))
+    it('should return false when path is not a directory', async () => {
+      const mockStat = { isDirectory: () => false }
+      vi.mocked(fs.promises.stat).mockResolvedValue(mockStat as any)
 
-      const result = isDirectory('/path/to/file')
+      const result = await isDirectory('/path/to/file')
 
       expect(result).toBe(false)
     })
 
-    it('should return false for non-existent paths', () => {
-      mockFs.statSync.mockImplementation(() => {
-        throw new Error('ENOENT')
-      })
+    it('should return false when path does not exist', async () => {
+      vi.mocked(fs.promises.stat).mockRejectedValue(new Error('Path not found'))
 
-      const result = isDirectory('/path/to/nonexistent')
+      const result = await isDirectory('/path/to/nonexistent')
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('isDirectorySync', () => {
+    it('should return true when path is a directory', () => {
+      const mockStat = { isDirectory: () => true }
+      vi.mocked(fs.statSync).mockReturnValue(mockStat as any)
+
+      const result = isDirectorySync('/path/to/dir')
+
+      expect(result).toBe(true)
+      expect(fs.statSync).toHaveBeenCalledWith('/path/to/dir')
+    })
+
+    it('should return false when path is not a directory', () => {
+      const mockStat = { isDirectory: () => false }
+      vi.mocked(fs.statSync).mockReturnValue(mockStat as any)
+
+      const result = isDirectorySync('/path/to/file')
 
       expect(result).toBe(false)
     })
 
-    it('should handle all exceptions gracefully', () => {
-      mockFs.statSync.mockImplementation(() => {
-        throw new Error('Unexpected error')
+    it('should return false when path does not exist', () => {
+      vi.mocked(fs.statSync).mockImplementation(() => {
+        throw new Error('Path not found')
       })
 
-      const result = isDirectory('/path/to/file')
+      const result = isDirectorySync('/path/to/nonexistent')
 
       expect(result).toBe(false)
     })
   })
 
   describe('getVersion', () => {
-    it('should extract version from a path', () => {
-      const path = '/path/to/chrome/114.0.5735.198/chrome.exe'
-
-      const result = getVersion(path)
-
-      expect(result).toBe('114.0.5735.198')
+    it('should extract version from file path', () => {
+      expect(getVersion('/path/to/chrome/1.2.3/chrome')).toBe('1.2.3')
+      expect(getVersion('/path/to/firefox/99.0.1/firefox')).toBe('99.0.1')
+      expect(getVersion('/path/to/browser/1.2.3.4/browser')).toBe('1.2.3.4')
     })
 
-    it('should return undefined for paths without version numbers', () => {
-      const path = '/path/to/chrome/chrome.exe'
-
-      const result = getVersion(path)
-
-      expect(result).toBeUndefined()
+    it('should return the last version match', () => {
+      expect(getVersion('/path/1.0.0/to/chrome/2.0.0/chrome')).toBe('2.0.0')
     })
 
-    it('should return undefined for empty paths', () => {
-      const result = getVersion('')
-
-      expect(result).toBeUndefined()
+    it('should handle version with dash', () => {
+      expect(getVersion('/path/to/chrome/1.2-5/chrome')).toBe('1.2-5')
+      expect(getVersion('/path/to/chrome/1.2.3-alpha/chrome')).toBe('1.2.3-alpha')
     })
 
-    it('should handle version patterns with hyphens', () => {
-      const path = '/path/to/firefox/114.0-1/firefox.exe'
-
-      const result = getVersion(path)
-
-      expect(result).toBe('114.0-1')
-    })
-
-    it('should handle semantic version patterns with pre-release identifiers', () => {
-      const path = '/path/to/chrome/114.0.5735.198-alpha/firefox.exe'
-
-      const result = getVersion(path)
-
-      expect(result).toBe('114.0.5735.198-alpha')
-    })
-
-    it('should extract the last version pattern in the path', () => {
-      const path = '/path/to/chrome/114.0.5735.198/chrome/115.0.5790.0/chrome.exe'
-
-      const result = getVersion(path)
-
-      expect(result).toBe('115.0.5790.0')
+    it('should return undefined when no version found', () => {
+      expect(getVersion('/path/to/chrome')).toBeUndefined()
+      expect(getVersion('/path/to/browser/stable')).toBeUndefined()
     })
   })
 
-  describe('normalizePath', () => {
-    it('should convert backslashes to forward slashes', () => {
-      const path = 'C:\\Program Files\\Chrome\\chrome.exe'
-
-      const result = normalizePath(path)
-
-      expect(result).toBe('C:/Program Files/Chrome/chrome.exe')
+  describe('getBrowserVersion', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
     })
 
-    it('should handle paths with already forward slashes', () => {
-      const path = '/usr/bin/chrome'
+    it('should return undefined when file is not readable', async () => {
+      vi.mocked(fs.promises.access).mockRejectedValue(new Error('Not readable'))
 
-      const result = normalizePath(path)
+      const result = await getBrowserVersion('/path/to/browser')
 
-      expect(result).toBe('/usr/bin/chrome')
+      expect(result).toBeUndefined()
     })
 
-    it('should handle mixed slash paths', () => {
-      const path = 'C:\\Program Files\\Chrome/chrome.exe'
+    describe('Windows platform', () => {
+      const originalPlatform = process.platform
 
-      const result = normalizePath(path)
+      beforeEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: 'win32',
+          writable: true,
+          configurable: true,
+        })
+      })
 
-      expect(result).toBe('C:/Program Files/Chrome/chrome.exe')
+      afterEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      it('should get version from Windows file properties', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(execFile).mockResolvedValue({ stdout: '100.0.4896.127\n', stderr: '' } as any)
+
+        const result = await getBrowserVersion('C:\\Program Files\\Chrome\\chrome.exe')
+
+        expect(result).toBe('100.0.4896.127')
+      })
+
+      it('should return undefined when PowerShell command fails', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(execFile).mockRejectedValue(new Error('PowerShell error'))
+
+        const result = await getBrowserVersion('C:\\Program Files\\Chrome\\chrome.exe')
+
+        expect(result).toBeUndefined()
+      })
+
+      it('should return undefined when version info is empty', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(execFile).mockResolvedValue({ stdout: '\n', stderr: '' } as any)
+
+        const result = await getBrowserVersion('C:\\Program Files\\Chrome\\chrome.exe')
+
+        expect(result).toBeUndefined()
+      })
     })
 
-    it('should handle empty paths', () => {
-      const result = normalizePath('')
+    describe('macOS platform', () => {
+      const originalPlatform = process.platform
 
-      expect(result).toBe('')
+      beforeEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: 'darwin',
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      afterEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      it('should get version from macOS Info.plist', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(execFile).mockResolvedValue({ stdout: '100.0.4896.127\n', stderr: '' } as any)
+
+        const result = await getBrowserVersion('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+
+        expect(result).toBe('100.0.4896.127')
+      })
+
+      it('should return undefined when Info.plist is not readable', async () => {
+        vi.mocked(fs.promises.access).mockImplementation((path: any) => {
+          if (path.includes('Info.plist')) {
+            return Promise.reject(new Error('Not found'))
+          }
+          return Promise.resolve(undefined)
+        })
+
+        const result = await getBrowserVersion('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+
+        expect(result).toBeUndefined()
+      })
+
+      it('should return undefined when path is not in .app format', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+
+        const result = await getBrowserVersion('/usr/bin/chrome')
+
+        expect(result).toBeUndefined()
+      })
+
+      it('should return undefined when defaults command fails', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(execFile).mockRejectedValue(new Error('defaults error'))
+
+        const result = await getBrowserVersion('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+
+        expect(result).toBeUndefined()
+      })
+    })
+
+    describe('Linux platform', () => {
+      const originalPlatform = process.platform
+
+      beforeEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: 'linux',
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      afterEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      it('should extract version from directory name', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(fs.promises.readlink).mockRejectedValue(new Error('Not a symlink'))
+
+        const result = await getBrowserVersion('/opt/chrome/100.0.4896.127/chrome')
+
+        expect(result).toBe('100.0.4896.127')
+      })
+
+      it('should extract version from symlink target', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(fs.promises.readlink).mockResolvedValue('../chrome-100.0.4896.127/chrome')
+
+        const result = await getBrowserVersion('/usr/bin/chrome')
+
+        expect(result).toBe('100.0.4896.127')
+      })
+
+      it('should return undefined when no version found in path or symlink', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(fs.promises.readlink).mockRejectedValue(new Error('Not a symlink'))
+
+        const result = await getBrowserVersion('/usr/bin/chrome')
+
+        expect(result).toBeUndefined()
+      })
+
+      it('should handle readlink errors gracefully', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+        vi.mocked(fs.promises.readlink).mockRejectedValue(new Error('Permission denied'))
+
+        const result = await getBrowserVersion('/opt/chrome/stable/chrome')
+
+        expect(result).toBeUndefined()
+      })
+    })
+
+    describe('Unsupported platform', () => {
+      const originalPlatform = process.platform
+
+      beforeEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: 'freebsd',
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      afterEach(() => {
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      })
+
+      it('should return undefined for unsupported platforms', async () => {
+        vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+
+        const result = await getBrowserVersion('/path/to/browser')
+
+        expect(result).toBeUndefined()
+      })
+    })
+
+    it('should handle exceptions gracefully', async () => {
+      const originalPlatform = process.platform
+
+      vi.mocked(fs.promises.access).mockResolvedValue(undefined)
+
+      try {
+        Object.defineProperty(process, 'platform', {
+          get () {
+            throw new Error('Platform error')
+          },
+          configurable: true,
+        })
+
+        const result = await getBrowserVersion('/path/to/browser')
+
+        expect(result).toBeUndefined()
+      } finally {
+        // 恢复原始的 platform
+        Object.defineProperty(process, 'platform', {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        })
+      }
     })
   })
 })

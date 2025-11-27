@@ -28,9 +28,10 @@ export const findExecutablePath = (dir: string, name: keyof typeof EXECUTABLE_PA
     if (platform === 'linux') return 'linux'
     if (platform === 'darwin') return 'mac'
     if (platform === 'win32') return 'win'
+    return undefined
   })()
 
-  if (!shortPlatform) return shortPlatform
+  if (!shortPlatform) return undefined
   const tokens = EXECUTABLE_PATHS[name][shortPlatform]
   return path.join(dir, ...tokens)
 }

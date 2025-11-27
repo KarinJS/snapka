@@ -14,5 +14,8 @@ export default defineConfig({
     mockReset: true,
     clearMocks: true,
     restoreMocks: true,
+    environment: 'node',
+    // 防止测试时拉起浏览器
+    globals: true,
   },
 })

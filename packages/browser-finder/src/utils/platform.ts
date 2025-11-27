@@ -10,7 +10,7 @@ export function getCurrentPlatform (): PlatformValue {
   const arch = os.arch()
 
   if (platform === 'win32') {
-    return arch === 'x64' ? Platform.WIN64 : Platform.WIN32
+    return arch === 'x64' || arch === 'arm64' ? Platform.WIN64 : Platform.WIN32
   }
 
   if (platform === 'darwin') {
@@ -21,6 +21,5 @@ export function getCurrentPlatform (): PlatformValue {
     return arch === 'arm64' || arch === 'arm' ? Platform.LINUX_ARM : Platform.LINUX
   }
 
-  // 默认返回
-  return Platform.LINUX
+  return platform as PlatformValue
 }

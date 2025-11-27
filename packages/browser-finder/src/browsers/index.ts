@@ -78,19 +78,23 @@ export class SystemBrowserFinder {
 
     const results: BrowserInfo[] = []
     targets.forEach(channel => {
-      const dir = computeSystemExecutablePath({ browser: Browser.CHROME, channel })
-      if (!fs.existsSync(dir)) return
+      try {
+        const dir = computeSystemExecutablePath({ browser: Browser.CHROME, channel })
+        if (!fs.existsSync(dir)) return
 
-      results.push({
-        type: SystemBrowserType.Chrome,
-        executablePath: dir,
-        // 系统浏览器的目录较为复杂，返回可执行文件所在目录的上一级目录
-        dir: path.dirname(dir),
-        get version () {
-          // 仅提取这种格式 144.0.7544.3
-          return execSync(`"${dir}" --version`).toString().trim().match(/\d+(?:\.\d+){2,3}/)?.[0] || ''
-        },
-      })
+        results.push({
+          type: SystemBrowserType.Chrome,
+          executablePath: dir,
+          // 系统浏览器的目录较为复杂，返回可执行文件所在目录的上一级目录
+          dir: path.dirname(dir),
+          get version () {
+            // 仅提取这种格式 144.0.7544.3
+            return execSync(`"${dir}" --version`).toString().trim().match(/\d+(?:\.\d+){2,3}/)?.[0] || ''
+          },
+        })
+      } catch {
+        // 忽略找不到的浏览器版本
+      }
     })
     return results
   }

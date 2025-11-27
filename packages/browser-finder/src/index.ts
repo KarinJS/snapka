@@ -64,7 +64,7 @@ export class BrowserFinder {
   async findChrome (): Promise<BrowserInfo[]> {
     return Promise.all([
       this.puppeteer.findChrome(),
-      this.system.findChrome(),
+      this.system.findChromeSync(),
     ]).then(results => results.flat().filter(Boolean) as BrowserInfo[])
   }
 
@@ -192,7 +192,7 @@ export class BrowserFinder {
       this.findChromeHeadlessShell(),
       this.findEdge(),
       this.findBrave(),
-    ]).then(results => results.flat())
+    ]).then(results => results.flat(Infinity).filter(Boolean) as BrowserInfo[])
   }
 
   /**
@@ -201,12 +201,12 @@ export class BrowserFinder {
    */
   findChromiumCoreSync (): BrowserInfo[] {
     return [
-      ...this.findChromeSync(),
-      ...this.findChromiumSync(),
-      ...this.findChromeHeadlessShellSync(),
-      ...this.findEdgeSync(),
-      ...this.findBraveSync(),
-    ]
+      this.findChromeSync(),
+      this.findChromiumSync(),
+      this.findChromeHeadlessShellSync(),
+      this.findEdgeSync(),
+      this.findBraveSync(),
+    ].flat(Infinity) as BrowserInfo[]
   }
 
   /**
