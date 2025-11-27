@@ -5,13 +5,28 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "shijin",
   "license": "MIT",
   "dependencies": {
     "@snapka/browser-finder": "workspace:*",
-    "@snapka/playwright-core": "workspace:*"
+    "@snapka/browsers": "workspace:*",
+    "@snapka/playwright-core": "workspace:*",
+    "@snapka/types": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "devDependencies": {
+    "@types/jsdom": "^27.0.0",
+    "jsdom": "^27.2.0",
+    "p-limit": "^7.2.0"
   }
 }
