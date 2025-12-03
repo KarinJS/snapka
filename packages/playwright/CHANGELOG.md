@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/KarinJS/snapka/compare/playwright-v0.1.3...playwright-v0.1.4) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* 修改浏览器属性为公共访问 ([5904b80](https://github.com/KarinJS/snapka/commit/5904b80390ef3fb0b8cc92e80726e40d8127fe85))
+
 ## [0.1.3](https://github.com/KarinJS/snapka/compare/playwright-v0.1.2...playwright-v0.1.3) (2025-12-03)
 
 
