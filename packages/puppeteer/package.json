@@ -25,7 +25,6 @@
   "license": "MIT",
   "author": "shijin",
   "type": "module",
-  "access": "public",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -40,6 +39,9 @@
       "default": "./src/snapka-browser-finder.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && tsdown",
     "test": "vitest run",
@@ -66,9 +68,7 @@
         "types": "./dist/snapka-browser-finder.d.ts",
         "default": "./dist/snapka-browser-finder.mjs"
       }
-    },
-    "files": [
-      "dist"
-    ]
-  }
+    }
+  },
+  "access": "public"
 }

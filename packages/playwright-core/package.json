@@ -21,13 +21,15 @@
   "license": "MIT",
   "author": "shijin",
   "type": "module",
-  "access": "public",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && tsdown"
   },
@@ -40,9 +42,7 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.mjs"
       }
-    },
-    "files": [
-      "dist"
-    ]
-  }
+    }
+  },
+  "access": "public"
 }

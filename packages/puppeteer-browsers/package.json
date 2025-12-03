@@ -24,7 +24,6 @@
   "license": "Apache-2.0",
   "author": "The Chromium Authors",
   "type": "module",
-  "access": "public",
   "exports": {
     ".": {
       "types": "./src/main.ts",
@@ -32,6 +31,9 @@
     }
   },
   "bin": "src/main-cli.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && tsdown"
   },
@@ -59,9 +61,7 @@
         "types": "./dist/main.d.ts",
         "default": "./dist/main.mjs"
       }
-    },
-    "files": [
-      "dist"
-    ]
-  }
+    }
+  },
+  "access": "public"
 }
