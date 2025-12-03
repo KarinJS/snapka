@@ -25,29 +25,10 @@ jobs:
         with:
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
-  publish-browser-finder:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.browser_finder_release == 'true' }}
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-      - name: 发布 browser-finder 包
-        working-directory: packages/browser-finder
-        run: pnpm i && pnpm run build && pnpm publish
 
-  publish-browsers:
+  publish:
     needs: release-please
-    if: ${{ needs.release-please.outputs.browsers_release == 'true' }}
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
     runs-on: macos-latest
     steps:
       - name: 检出代码
@@ -57,132 +38,52 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
+
+      - name: 安装依赖
+        run: pnpm install
+
+      - name: 升级 npm 版本
+        run: npm install -g npm@latest
+
+      - name: 构建所有包
+        run: pnpm -r run build
+
       - name: 发布 browsers 包
+        if: ${{ needs.release-please.outputs.browsers_release == 'true' }}
         working-directory: packages/puppeteer-browsers
-        run: pnpm i && pnpm run build && pnpm publish
-
-  publish-types:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.types_release == 'true' }}
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-      - name: 发布 types 包
-        working-directory: packages/snapka-types
         run: pnpm publish
 
-  publish-playwright-core:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.playwright_core_release == 'true' }}
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
+      - name: 发布 types 包
+        if: ${{ needs.release-please.outputs.types_release == 'true' }}
+        working-directory: packages/snapka-types
+
+        run: pnpm publish
       - name: 发布 playwright-core 包
+        if: ${{ needs.release-please.outputs.playwright_core_release == 'true' }}
         working-directory: packages/playwright-core
-        run: pnpm i && pnpm run build && pnpm publish
 
-  publish-puppeteer-core:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.puppeteer_core_release == 'true' }}
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
+        run: pnpm publish
       - name: 发布 puppeteer-core 包
+        if: ${{ needs.release-please.outputs.puppeteer_core_release == 'true' }}
         working-directory: packages/puppeteer-core
-        run: pnpm i && pnpm run build && pnpm publish
 
-  publish-playwright:
-    needs:
-      [
-        release-please,
-        publish-browser-finder,
-        publish-playwright-core,
-        publish-types,
-      ]
-    if: |
-      always() &&
-      needs.release-please.outputs.playwright_release == 'true' &&
-      (needs.publish-browser-finder.result == 'success' || needs.publish-browser-finder.result == 'skipped') &&
-      (needs.publish-playwright-core.result == 'success' || needs.publish-playwright-core.result == 'skipped') &&
-      (needs.publish-types.result == 'success' || needs.publish-types.result == 'skipped')
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
+        run: pnpm publish
+      - name: 发布 browser-finder 包
+        if: ${{ needs.release-please.outputs.browser_finder_release == 'true' }}
+        working-directory: packages/browser-finder
+
+        run: pnpm publish
       - name: 发布 playwright 包
+        if: ${{ needs.release-please.outputs.playwright_release == 'true' }}
         working-directory: packages/playwright
-        run: pnpm i && pnpm run build && pnpm publish
 
-  publish-puppeteer:
-    needs:
-      [
-        release-please,
-        publish-browser-finder,
-        publish-puppeteer-core,
-        publish-types,
-      ]
-    if: |
-      always() &&
-      needs.release-please.outputs.puppeteer_release == 'true' &&
-      (needs.publish-browser-finder.result == 'success' || needs.publish-browser-finder.result == 'skipped') &&
-      (needs.publish-puppeteer-core.result == 'success' || needs.publish-puppeteer-core.result == 'skipped') &&
-      (needs.publish-types.result == 'success' || needs.publish-types.result == 'skipped')
-    runs-on: macos-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-      - name: 设置 node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: 设置 pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
+        run: pnpm publish
       - name: 发布 puppeteer 包
+        if: ${{ needs.release-please.outputs.puppeteer_release == 'true' }}
         working-directory: packages/puppeteer
-        run: pnpm i && pnpm run build && pnpm publish
+        run: pnpm publish

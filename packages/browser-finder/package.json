@@ -33,7 +33,7 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsc && tsdown",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
