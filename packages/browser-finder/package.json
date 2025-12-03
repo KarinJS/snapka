@@ -1,33 +1,55 @@
 {
   "name": "@snapka/browser-finder",
   "version": "0.0.1",
-  "description": "cross-platform browser search module for puppeteer, playwright, and system",
-  "type": "module",
-  "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
-  },
+  "description": "Cross-platform browser finder for Puppeteer, Playwright, and system browsers",
   "keywords": [
     "browser",
     "finder",
     "chrome",
+    "chromium",
     "edge",
-    "brave"
+    "brave",
+    "firefox",
+    "puppeteer",
+    "playwright",
+    "automation"
   ],
-  "author": "shijin",
+  "homepage": "https://github.com/karinjs/snapka#readme",
+  "bugs": {
+    "url": "https://github.com/karinjs/snapka/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karinjs/snapka.git",
+    "directory": "packages/browser-finder"
+  },
   "license": "MIT",
-  "files": [
-    "dist"
-  ],
+  "author": "shijin",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@snapka/browsers": "workspace:*"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "files": [
+      "dist"
+    ]
   }
 }

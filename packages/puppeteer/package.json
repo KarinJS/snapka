@@ -1,22 +1,30 @@
 {
   "name": "@snapka/puppeteer",
   "version": "0.0.1",
-  "description": "",
-  "type": "module",
-  "scripts": {
-    "build": "tsc && tsdown",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+  "description": "Enhanced Puppeteer with browser finder and parallel screenshot capabilities",
+  "keywords": [
+    "puppeteer",
+    "browser",
+    "automation",
+    "testing",
+    "screenshot",
+    "parallel",
+    "chromium",
+    "chrome",
+    "headless"
+  ],
+  "homepage": "https://github.com/karinjs/snapka#readme",
+  "bugs": {
+    "url": "https://github.com/karinjs/snapka/issues"
   },
-  "keywords": [],
-  "author": "shijin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karinjs/snapka.git",
+    "directory": "packages/puppeteer"
+  },
   "license": "MIT",
-  "dependencies": {
-    "@snapka/browser-finder": "workspace:*",
-    "@snapka/browsers": "workspace:*",
-    "@snapka/puppeteer-core": "workspace:*",
-    "@snapka/types": "workspace:*"
-  },
+  "author": "shijin",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -31,7 +39,35 @@
       "default": "./src/snapka-browser-finder.ts"
     }
   },
-  "devDependencies": {
+  "scripts": {
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@snapka/browser-finder": "workspace:*",
+    "@snapka/browsers": "workspace:*",
+    "@snapka/puppeteer-core": "workspace:*",
+    "@snapka/types": "workspace:*",
     "p-limit": "catalog:"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "./puppeteer-core": {
+        "types": "./dist/puppeteer-core.d.ts",
+        "default": "./dist/puppeteer-core.mjs"
+      },
+      "./snapka-browser-finder": {
+        "types": "./dist/snapka-browser-finder.d.ts",
+        "default": "./dist/snapka-browser-finder.mjs"
+      }
+    },
+    "files": [
+      "dist"
+    ]
   }
 }

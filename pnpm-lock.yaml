@@ -35,6 +35,9 @@ importers:
       tsdown:
         specifier: ^0.16.6
         version: 0.16.6(typescript@6.0.0-dev.20251125)
+      tsdown-config:
+        specifier: workspace:*
+        version: link:packages/tsdown-config
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.6)(tsx@4.20.6)(typescript@6.0.0-dev.20251125)
@@ -71,7 +74,6 @@ importers:
       '@snapka/types':
         specifier: workspace:*
         version: link:../snapka-types
-    devDependencies:
       p-limit:
         specifier: 'catalog:'
         version: 7.2.0
@@ -111,7 +113,6 @@ importers:
       '@snapka/types':
         specifier: workspace:*
         version: link:../snapka-types
-    devDependencies:
       p-limit:
         specifier: 'catalog:'
         version: 7.2.0
@@ -245,6 +246,8 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.20.6
+
+  packages/tsdown-config: {}
 
 packages:
 

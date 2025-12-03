@@ -1,33 +1,39 @@
 {
   "name": "@snapka/browsers",
   "version": "0.0.1",
-  "description": "Download and launch browsers",
-  "scripts": {
-    "build": "tsc && tsdown"
-  },
-  "type": "module",
-  "bin": "src/main-cli.ts",
-  "exports": {
-    "types": "./src/main.ts",
-    "default": "./src/main.ts"
-  },
+  "description": "Download and launch browsers for Puppeteer and Playwright",
   "keywords": [
     "puppeteer",
-    "browsers"
+    "playwright",
+    "browsers",
+    "chromium",
+    "chrome",
+    "firefox",
+    "download",
+    "launcher"
   ],
+  "homepage": "https://github.com/karinjs/snapka#readme",
+  "bugs": {
+    "url": "https://github.com/karinjs/snapka/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/karinjs/snapka.git",
     "directory": "packages/puppeteer-browsers"
   },
-  "author": "The Chromium Authors",
   "license": "Apache-2.0",
-  "engines": {
-    "node": ">=18"
+  "author": "The Chromium Authors",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/main.ts",
+      "default": "./src/main.ts"
+    }
   },
-  "files": [
-    "dist"
-  ],
+  "bin": "src/main-cli.ts",
+  "scripts": {
+    "build": "tsc && tsdown"
+  },
   "devDependencies": {
     "@karinjs/axios": "^1.13.2",
     "@types/debug": "4.1.12",
@@ -41,5 +47,20 @@
     "progress": "^2.0.3",
     "semver": "^7.7.3",
     "yargs": "^17.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "bin": "dist/main-cli.mjs",
+    "exports": {
+      ".": {
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.mjs"
+      }
+    },
+    "files": [
+      "dist"
+    ]
   }
 }

@@ -1,21 +1,21 @@
 {
   "name": "@snapka/test",
   "version": "0.0.1",
-  "type": "module",
   "description": "Browser benchmark tests",
-  "scripts": {
-    "puppeteer": "tsx src/puppeteer-benchmark.ts",
-    "playwright": "tsx src/playwright-benchmark.ts"
-  },
   "keywords": [],
-  "author": "shijin",
   "license": "MIT",
+  "author": "shijin",
+  "type": "module",
+  "scripts": {
+    "playwright": "tsx src/playwright-benchmark.ts",
+    "puppeteer": "tsx src/puppeteer-benchmark.ts"
+  },
   "dependencies": {
     "@snapka/browser-finder": "workspace:*",
-    "@snapka/puppeteer-core": "workspace:*",
+    "@snapka/playwright": "workspace:*",
     "@snapka/playwright-core": "workspace:*",
     "@snapka/puppeteer": "workspace:*",
-    "@snapka/playwright": "workspace:*"
+    "@snapka/puppeteer-core": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

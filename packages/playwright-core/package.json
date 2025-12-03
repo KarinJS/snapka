@@ -1,22 +1,47 @@
 {
   "name": "@snapka/playwright-core",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Core Playwright types and utilities for Snapka",
+  "keywords": [
+    "playwright",
+    "playwright-core",
+    "types",
+    "browser",
+    "automation"
+  ],
+  "homepage": "https://github.com/karinjs/snapka#readme",
+  "bugs": {
+    "url": "https://github.com/karinjs/snapka/issues"
   },
-  "keywords": [],
-  "author": "shijin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karinjs/snapka.git",
+    "directory": "packages/playwright-core"
+  },
   "license": "MIT",
-  "devDependencies": {
-    "playwright-core": "^1.56.1"
-  },
+  "author": "shijin",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
+  },
+  "scripts": {
+    "build": "tsc && tsdown"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.1"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "files": [
+      "dist"
+    ]
   }
 }
