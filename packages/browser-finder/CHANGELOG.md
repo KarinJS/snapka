@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/KarinJS/snapka/compare/browser-finder-v0.1.3...browser-finder-v0.1.4) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* 版本号+++ ([eddadda](https://github.com/KarinJS/snapka/commit/eddadda100619e04111001b762af1e86189793e0))
+
 ## [0.1.3](https://github.com/KarinJS/snapka/compare/browser-finder-v0.1.2...browser-finder-v0.1.3) (2025-12-03)
 
 
