@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/KarinJS/snapka/compare/types-v0.1.0...types-v0.1.1) (2025-12-03)
+
+
+### 🎡 Continuous Integration
+
+* fix files ([0171dd0](https://github.com/KarinJS/snapka/commit/0171dd07278782a222d481d50eeb14d896a5c495))
+
 ## [0.1.0](https://github.com/KarinJS/snapka/compare/types-v0.0.1...types-v0.1.0) (2025-12-03)
 
 
