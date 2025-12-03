@@ -1,9 +1,9 @@
 {
-  "packages/browser-finder": "0.1.1",
-  "packages/playwright": "0.1.1",
-  "packages/playwright-core": "0.1.1",
-  "packages/puppeteer": "0.1.1",
-  "packages/puppeteer-browsers": "0.1.1",
-  "packages/puppeteer-core": "0.1.1",
-  "packages/snapka-types": "0.1.1"
+  "packages/browser-finder": "0.1.2",
+  "packages/playwright": "0.1.2",
+  "packages/playwright-core": "0.1.2",
+  "packages/puppeteer": "0.1.2",
+  "packages/puppeteer-browsers": "0.1.2",
+  "packages/puppeteer-core": "0.1.2",
+  "packages/snapka-types": "0.1.2"
 }

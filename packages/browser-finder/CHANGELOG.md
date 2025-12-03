@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.2](https://github.com/KarinJS/snapka/compare/browser-finder-v0.1.1...browser-finder-v0.1.2) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* ci大小写敏感 ([6ad7bde](https://github.com/KarinJS/snapka/commit/6ad7bde0104fe0bcc01d0e2ccdb6aeb02fb7af55))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @snapka/browsers bumped to 0.1.2
+
 ## [0.1.1](https://github.com/KarinJS/snapka/compare/browser-finder-v0.1.0...browser-finder-v0.1.1) (2025-12-03)
 
 
