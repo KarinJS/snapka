@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/KarinJS/snapka/compare/puppeteer-core-v0.1.2...puppeteer-core-v0.1.3) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* 版本号+++ ([7989dc0](https://github.com/KarinJS/snapka/commit/7989dc0dbdbfb34d9840df70c05c7904b437e347))
+
 ## [0.1.2](https://github.com/KarinJS/snapka/compare/puppeteer-core-v0.1.1...puppeteer-core-v0.1.2) (2025-12-03)
 
 
