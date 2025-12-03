@@ -3,6 +3,7 @@
   "version": "0.1.2",
   "description": "Core Puppeteer types and utilities for Snapka",
   "keywords": [
+    "karinjs",
     "puppeteer",
     "puppeteer-core",
     "types",
