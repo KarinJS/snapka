@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/karinjs/snapka.git",
+    "url": "git+https://github.com/KarinJS/snapka.git",
     "directory": "packages/puppeteer-browsers"
   },
   "license": "Apache-2.0",
