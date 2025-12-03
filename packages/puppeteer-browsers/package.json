@@ -58,8 +58,8 @@
     "bin": "dist/main-cli.mjs",
     "exports": {
       ".": {
-        "types": "./dist/main.d.ts",
-        "default": "./dist/main.mjs"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
       }
     }
   },
