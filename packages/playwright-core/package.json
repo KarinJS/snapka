@@ -1,6 +1,6 @@
 {
   "name": "@snapka/playwright-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Core Playwright types and utilities for Snapka",
   "keywords": [
     "playwright",

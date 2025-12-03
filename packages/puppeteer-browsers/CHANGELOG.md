@@ -1,0 +1,14 @@
+# Changelog
+
+## [0.1.0](https://github.com/KarinJS/snapka/compare/browsers-v0.0.1...browsers-v0.1.0) (2025-12-03)
+
+
+### ✨ Features
+
+* @snapka/puppeteer ([f8f1e9f](https://github.com/KarinJS/snapka/commit/f8f1e9f06e404768980e3e7ce466cc8d0013f8bc))
+* build ([8584105](https://github.com/KarinJS/snapka/commit/858410581134562220129f060c417616e2f6d17d))
+
+
+### 🎡 Continuous Integration
+
+* 使用 OIDC 进行发布 ([fb2bd39](https://github.com/KarinJS/snapka/commit/fb2bd39c92680f53d88f7a6e1a1098ce4d421d2b))
