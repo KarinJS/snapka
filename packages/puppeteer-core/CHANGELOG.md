@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/KarinJS/snapka/compare/puppeteer-core-v0.1.1...puppeteer-core-v0.1.2) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* ci大小写敏感 ([6ad7bde](https://github.com/KarinJS/snapka/commit/6ad7bde0104fe0bcc01d0e2ccdb6aeb02fb7af55))
+
 ## [0.1.1](https://github.com/KarinJS/snapka/compare/puppeteer-core-v0.1.0...puppeteer-core-v0.1.1) (2025-12-03)
 
 
