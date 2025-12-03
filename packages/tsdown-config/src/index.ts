@@ -26,33 +26,6 @@ const config = (options?: UserConfig & {
     outDir: 'dist',
     clean: true,
     treeshake: true,
-    outputOptions (outputOptions) {
-      outputOptions.advancedChunks = {
-        groups: [
-          {
-            // 按包名分组
-            name (id) {
-              if (id.includes('node_modules')) {
-                const pkg = getPackageName(id)
-                /** 文件名称 不包含后缀 */
-                const name = path.basename(id, path.extname(id))
-                if (id.includes('chromium-bidi')) return `chromium-bidi/${name}`
-                if (id.includes('browsers')) return `playwright-browsers/${name}`
-                if (id.includes('android')) return `playwright-android/${name}`
-                if (id.includes('playwright-core')) return `playwright-core/${name}`
-                return pkg
-              }
-              return null
-            },
-
-            // 匹配 node_modules 下所有模块
-            test: /node_modules[\\/]/,
-          },
-        ],
-      }
-
-      return outputOptions
-    },
     ...options,
   }
 
