@@ -9,3 +9,5 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+/packages/test/src/screenshots
+/packages/snapkn-webui

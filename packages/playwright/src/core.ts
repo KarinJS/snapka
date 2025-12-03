@@ -11,27 +11,30 @@ import type { SnapkaScreenshotOptions, SnapkaScreenshotViewportOptions } from '@
 export class PlaywrightCore {
   /**
    * Playwright 浏览器实例
-   * @remarks 用于创建和管理上下文，执行浏览器级别的操作
+   * @remarks 用于创建和管理页面，执行浏览器级别的操作
    */
   private browser: Browser
 
   /**
-   * 浏览器上下文池
-   * @remarks 存储可复用的浏览器上下文
+   * 浏览器上下文实例
+   * @remarks 所有页面都在这个上下文中创建，类似 Puppeteer 的浏览器实例
    */
-  private readonly contextPool: BrowserContext[] = []
+  private context: BrowserContext
 
   /**
-   * 活跃上下文集合
-   * @remarks 跟踪当前正在使用的上下文
+   * 初始页面
+   * @remarks 保持一个初始页面以维持 Context 窗口存活，避免每次 newPage 时重建窗口导致性能下降
    */
-  private readonly activeContexts: Set<BrowserContext> = new Set()
+  private initialPage: Page
 
   /**
-   * 上下文空闲时间记录表
-   * @remarks 记录每个上下文进入空闲池的时间戳
+   * 活跃页面集合：跟踪当前正在使用的页面
+   * @remarks
+   * - 用于追踪所有正在执行截图任务的页面
+   * - 使用 Set 数据结构确保页面唯一性和快速查找
+   * - 在页面获取时添加，在页面释放时移除
    */
-  private readonly contextIdleTimes: Map<BrowserContext, number> = new Map()
+  private readonly activePages: Set<Page> = new Set()
 
   /**
    * 启动或连接时的配置参数
@@ -47,52 +50,35 @@ export class PlaywrightCore {
 
   /**
    * 最大同时打开的页面数量
-   * @remarks 控制并发数量，防止资源耗尽
+   * @remarks
+   * - 控制并发数量，防止资源耗尽
+   * - 默认值为 10，可通过配置覆盖
    */
   private readonly maxOpenPages: number
 
   /**
-   * 页面管理模式
-   * @remarks
-   * - `'reuse'`: 复用模式，上下文会被放回池中供下次使用（默认，推荐）
-   * - `'disposable'`: 一次性模式，每次截图后立即销毁上下文
-   */
-  private readonly pageMode: 'reuse' | 'disposable'
-
-  /**
-   * 页面空闲超时时间（毫秒）
-   * @remarks 上下文在池中空闲超过此时间后会被自动销毁
-   */
-  private readonly pageIdleTimeout: number
-
-  /**
    * 并发限制器
-   * @remarks 限制同时执行的截图任务数量
+   * @remarks
+   * - 使用 p-limit 库实现并发控制
+   * - 限制同时执行的截图任务数量为 maxOpenPages
+   * - 超出限制的任务会自动排队等待
    */
   private readonly limit: ReturnType<typeof pLimit>
-
-  /**
-   * 空闲检查定时器
-   * @remarks 定期清理超时的空闲上下文
-   */
-  private idleCheckTimer?: NodeJS.Timeout
 
   constructor (
     options: PlaywrightLaunchOptions | PlaywrightConnectOptions,
     browser: Browser,
-    restartFn: () => Promise<Browser>
+    restartFn: () => Promise<Browser>,
+    context: BrowserContext,
+    initialPage: Page
   ) {
     this.browser = browser
+    this.context = context
+    this.initialPage = initialPage
     this.options = options
     this.restartFn = restartFn
     this.maxOpenPages = isNumber(options.maxOpenPages) ? options.maxOpenPages : 10
-    this.pageMode = options.pageMode || 'reuse'
-    this.pageIdleTimeout = isNumber(options.pageIdleTimeout) ? options.pageIdleTimeout : 60000
     this.limit = pLimit(this.maxOpenPages)
-
-    if (this.shouldStartIdleCheck()) {
-      this.startIdleCheck()
-    }
   }
 
   /**
@@ -118,23 +104,21 @@ export class PlaywrightCore {
    * @remarks 关闭当前浏览器并使用相同配置重新启动
    */
   async restart (): Promise<void> {
-    this.stopIdleCheck()
-    await this.closeAllContexts()
+    await this.closeAllPages()
     await this.browser.close().catch(() => { })
     const newBrowser = await this.restartFn()
     this.browser = newBrowser
-
-    if (this.shouldStartIdleCheck()) {
-      this.startIdleCheck()
-    }
+    this.context = await newBrowser.newContext({
+      viewport: this.options.defaultViewport || { width: 800, height: 600 },
+    })
+    this.initialPage = await this.context.newPage()
   }
 
   /**
    * 销毁当前浏览器实例并清理所有资源
    */
   async close (): Promise<void> {
-    this.stopIdleCheck()
-    await this.closeAllContexts()
+    await this.closeAllPages()
     await this.browser.close()
   }
 
@@ -255,110 +239,22 @@ export class PlaywrightCore {
   }
 
   /**
-   * 判断是否需要启动空闲检查
+   * 关闭所有页面并清理资源
    */
-  private shouldStartIdleCheck (): boolean {
-    return this.pageMode === 'reuse' && this.pageIdleTimeout > 0
+  private async closeAllPages (): Promise<void> {
+    const allPages = [...this.activePages]
+    await Promise.all(allPages.map(page => page.close().catch(() => { })))
+    this.activePages.clear()
+    await this.initialPage.close().catch(() => { })
   }
 
   /**
-   * 启动空闲检查定时器
+   * 创建新页面
    */
-  private startIdleCheck (): void {
-    this.idleCheckTimer = setInterval(() => this.cleanIdleContexts(), 30000)
-  }
-
-  /**
-   * 停止空闲检查定时器
-   */
-  private stopIdleCheck (): void {
-    if (this.idleCheckTimer) {
-      clearInterval(this.idleCheckTimer)
-      this.idleCheckTimer = undefined
-    }
-  }
-
-  /**
-   * 清理超时的空闲上下文
-   */
-  private async cleanIdleContexts (): Promise<void> {
-    const now = Date.now()
-    const expiredContexts = this.contextPool.filter(context => {
-      const idleTime = this.contextIdleTimes.get(context)
-      return idleTime && now - idleTime > this.pageIdleTimeout
-    })
-
-    for (const context of expiredContexts) {
-      const index = this.contextPool.indexOf(context)
-      if (index > -1) this.contextPool.splice(index, 1)
-      this.contextIdleTimes.delete(context)
-      await context.close().catch(() => { })
-    }
-  }
-
-  /**
-   * 关闭所有上下文并清理资源
-   */
-  private async closeAllContexts (): Promise<void> {
-    const allContexts = [...this.contextPool, ...this.activeContexts]
-    await Promise.all(allContexts.map(context => context.close().catch(() => { })))
-    this.contextPool.length = 0
-    this.activeContexts.clear()
-    this.contextIdleTimes.clear()
-  }
-
-  /**
-   * 从上下文池获取或创建新上下文
-   */
-  private async acquireContext (): Promise<BrowserContext> {
-    const context = this.contextPool.pop()
-    if (context) {
-      this.contextIdleTimes.delete(context)
-      this.activeContexts.add(context)
-      return context
-    }
-
-    const newContext = await this.browser.newContext({
-      viewport: this.options.defaultViewport || { width: 800, height: 600 },
-    })
-    this.activeContexts.add(newContext)
-    return newContext
-  }
-
-  /**
-   * 释放上下文回池或关闭
-   * @param context - 要释放的上下文实例
-   */
-  private async releaseContext (context: BrowserContext): Promise<void> {
-    this.activeContexts.delete(context)
-
-    if (this.pageMode === 'disposable') {
-      await context.close().catch(() => { })
-      return
-    }
-
-    await this.returnContextToPool(context)
-  }
-
-  /**
-   * 将上下文返回到上下文池
-   * @param context - 要返回的上下文实例
-   */
-  private async returnContextToPool (context: BrowserContext): Promise<void> {
-    if (this.contextPool.length >= this.maxOpenPages) {
-      await context.close().catch(() => { })
-      return
-    }
-
-    try {
-      // 关闭上下文中的所有页面
-      const pages = context.pages()
-      await Promise.all(pages.map(page => page.close().catch(() => { })))
-      this.contextPool.push(context)
-      this.contextIdleTimes.set(context, Date.now())
-    } catch {
-      await context.close().catch(() => { })
-    }
+  private async acquirePage (): Promise<Page> {
+    const page = await this.context.newPage()
+    this.activePages.add(page)
+    return page
   }
 
   /**
@@ -366,8 +262,8 @@ export class PlaywrightCore {
    * @param page - 要释放的页面实例
    */
   private async releasePage (page: Page): Promise<void> {
-    const context = page.context()
-    await this.releaseContext(context)
+    this.activePages.delete(page)
+    await page.close().catch(() => { })
   }
 
   /**
@@ -584,8 +480,7 @@ export class PlaywrightCore {
       throw new TypeError('参数 file 必须是一个有效的字符串，表示要截图的页面 URL')
     }
 
-    const context = await this.acquireContext()
-    const page = await context.newPage()
+    const page = await this.acquirePage()
 
     if (options.headers) {
       await page.setExtraHTTPHeaders(options.headers)

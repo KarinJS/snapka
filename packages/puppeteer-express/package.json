@@ -1,0 +1,26 @@
+{
+  "name": "@snapka/puppeteer-express",
+  "version": "0.0.1",
+  "description": "Puppeteer-based Express screenshot service with singleton browser instance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "node dist/index.js",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "puppeteer",
+    "screenshot",
+    "express",
+    "api"
+  ],
+  "author": "shijin",
+  "license": "MIT",
+  "devDependencies": {
+    "@snapka/puppeteer": "workspace:*",
+    "@snapka/types": "workspace:*",
+    "@karinjs/express": "catalog:",
+    "cosmiconfig": "catalog:"
+  }
+}

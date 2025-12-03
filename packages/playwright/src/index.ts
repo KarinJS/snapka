@@ -4,6 +4,9 @@ import playwright, { Browser } from '@snapka/playwright-core'
 
 import type { PlaywrightLaunchOptions, PlaywrightConnectOptions } from './launch'
 
+export type { PlaywrightCore } from './core'
+export type { PlaywrightLaunchOptions, PlaywrightConnectOptions } from './launch'
+
 const browsers: Browser[] = []
 
 export const snapka = {
@@ -24,30 +27,24 @@ export const snapka = {
     }
 
     options.executablePath = executablePath
-    const headless = options.headless === 'shell' || options.headless === 'new'
-    const browser = await playwright.chromium.launch({
-      ...options,
-      headless,
-    })
+
+    const headless = options.headless !== 'new'
+    const browser = await playwright.chromium.launch({ ...options, headless })
+    const viewport = options.defaultViewport || { width: 800, height: 600 }
     browsers.push(browser)
 
-    // 创建重启函数
-    const restartFn = async () => {
-      const newBrowser = await playwright.chromium.launch({
-        ...options,
-        headless,
-      })
-      // 替换 browsers 数组中的旧实例
+    /** 采用单窗口保活的形式进行截图渲染 提高性能 */
+    const context = await browser.newContext({ viewport })
+    const initialPage = await context.newPage()
+
+    const restart = async () => {
+      const newBrowser = await playwright.chromium.launch({ ...options, headless })
       const index = browsers.indexOf(browser)
-      if (index > -1) {
-        browsers[index] = newBrowser
-      } else {
-        browsers.push(newBrowser)
-      }
+      index > -1 ? browsers[index] = newBrowser : browsers.push(newBrowser)
       return newBrowser
     }
 
-    return new PlaywrightCore(options, browser, restartFn)
+    return new PlaywrightCore(options, browser, restart, context, initialPage)
   },
   /**
    * 连接到一个已启动的浏览器实例
@@ -56,28 +53,19 @@ export const snapka = {
    */
   connect: async (options: PlaywrightConnectOptions) => {
     const browserURL = options.baseUrl
-    const browser = await playwright.chromium.connect(browserURL, {
-      headers: options.headers,
-      timeout: options.timeout,
-    })
+    const browser = await playwright.chromium.connect(browserURL, options)
     browsers.push(browser)
 
-    // 创建重启函数（重新连接）
-    const restartFn = async () => {
-      const newBrowser = await playwright.chromium.connect(browserURL, {
-        headers: options.headers,
-        timeout: options.timeout,
-      })
-      // 替换 browsers 数组中的旧实例
+    const context = await browser.newContext({ viewport: options.defaultViewport || { width: 800, height: 600 } })
+    const initialPage = await context.newPage()
+
+    const restart = async () => {
+      const newBrowser = await playwright.chromium.connect(browserURL, options)
       const index = browsers.indexOf(browser)
-      if (index > -1) {
-        browsers[index] = newBrowser
-      } else {
-        browsers.push(newBrowser)
-      }
+      index > -1 ? browsers[index] = newBrowser : browsers.push(newBrowser)
       return newBrowser
     }
 
-    return new PlaywrightCore(options, browser, restartFn)
+    return new PlaywrightCore(options, browser, restart, context, initialPage)
   },
 }

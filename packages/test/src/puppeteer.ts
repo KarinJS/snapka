@@ -1,15 +1,20 @@
-import fs from 'node:fs'
+import path from 'node:path'
 import { snapka } from '@snapka/puppeteer'
+import { fileURLToPath } from 'node:url'
 
-const core = await snapka.launch()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-const time = Date.now()
-const { run, page, browser } = await core.screenshot({ file: 'https://baidu.com' })
-// page 和 browser 也可以直接使用 提供更多的控制能力
-const uint8Array = await run()
-console.log('Screenshot taken in', Date.now() - time, 'ms')
-console.log(page.url())
-console.log(browser.version())
+const playwright = await snapka.launch()
 
-fs.writeFileSync('baidu.png', uint8Array)
-await core.close()
+for (let i = 0; i < 30; i++) {
+  console.time(`puppeteer-baidu-${i}`)
+  const { run } = await playwright.screenshot({
+    file: 'https://baidu.com',
+    path: path.join(__dirname, `screenshots/puppeteer-${i}.png`),
+  })
+  await run()
+  console.timeEnd(`puppeteer-baidu-${i}`)
+}
+
+process.exit(0)

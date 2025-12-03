@@ -4,6 +4,9 @@ import puppeteer, { Browser } from '@snapka/puppeteer-core'
 
 import type { PuppeteerLaunchOptions, PuppeteerConnectOptions } from './launch'
 
+export type { PuppeteerCore } from './core'
+export type { PuppeteerLaunchOptions, PuppeteerConnectOptions } from './launch'
+
 const browsers: Browser[] = []
 
 export const snapka = {
@@ -24,24 +27,22 @@ export const snapka = {
     }
 
     options.executablePath = executablePath
-    const headless = options.headless === 'shell' ? 'shell' : options.headless === 'new'
+    const headless = options.headless
+      ? options.headless === 'shell' ? 'shell' : options.headless === 'new'
+      : 'shell'
+
     const browser = await puppeteer.launch({ ...options, headless })
     browsers.push(browser)
 
-    // 创建重启函数
-    const restartFn = async () => {
+    const restart = async () => {
       const newBrowser = await puppeteer.launch({ ...options, headless })
-      // 替换 browsers 数组中的旧实例
+      /** 替换掉旧的浏览器实例 */
       const index = browsers.indexOf(browser)
-      if (index > -1) {
-        browsers[index] = newBrowser
-      } else {
-        browsers.push(newBrowser)
-      }
+      index > -1 ? browsers[index] = newBrowser : browsers.push(newBrowser)
       return newBrowser
     }
 
-    return new PuppeteerCore(options, browser, restartFn)
+    return new PuppeteerCore(options, browser, restart)
   },
   /**
    * 连接到一个已启动的浏览器实例
@@ -53,19 +54,14 @@ export const snapka = {
     const browser = await puppeteer.connect({ ...options, browserURL })
     browsers.push(browser)
 
-    // 创建重启函数（重新连接）
-    const restartFn = async () => {
+    const restart = async () => {
       const newBrowser = await puppeteer.connect({ ...options, browserURL })
-      // 替换 browsers 数组中的旧实例
+      /** 替换掉旧的浏览器实例 */
       const index = browsers.indexOf(browser)
-      if (index > -1) {
-        browsers[index] = newBrowser
-      } else {
-        browsers.push(newBrowser)
-      }
+      index > -1 ? browsers[index] = newBrowser : browsers.push(newBrowser)
       return newBrowser
     }
 
-    return new PuppeteerCore(options, browser, restartFn)
+    return new PuppeteerCore(options, browser, restart)
   },
 }
