@@ -13,7 +13,7 @@ export class PlaywrightCore {
    * Playwright 浏览器实例
    * @remarks 用于创建和管理页面，执行浏览器级别的操作
    */
-  private browser: Browser
+  browser: Browser
 
   /**
    * 浏览器上下文实例

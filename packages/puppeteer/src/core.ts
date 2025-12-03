@@ -13,7 +13,7 @@ export class PuppeteerCore {
    * Puppeteer 浏览器实例
    * @remarks 用于创建和管理页面，执行浏览器级别的操作
    */
-  private browser: Browser
+  browser: Browser
 
   /**
    * 启动或连接时的配置参数
