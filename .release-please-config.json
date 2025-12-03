@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
   "include-component-in-tag": true,
+  "always-link-local": true,
   "changelog-sections": [
     {
       "type": "feat",
@@ -60,33 +61,12 @@
     }
   ],
   "packages": {
-    "packages/browser-finder": {
+    "packages/snapka-types": {
       "release-type": "node",
-      "package-name": "@snapka/browser-finder",
-      "component": "browser-finder",
+      "package-name": "@snapka/types",
+      "component": "types",
       "tag-separator": "-",
-      "scope": "browser-finder"
-    },
-    "packages/playwright": {
-      "release-type": "node",
-      "package-name": "@snapka/playwright",
-      "component": "playwright",
-      "tag-separator": "-",
-      "scope": "playwright"
-    },
-    "packages/playwright-core": {
-      "release-type": "node",
-      "package-name": "@snapka/playwright-core",
-      "component": "playwright-core",
-      "tag-separator": "-",
-      "scope": "playwright-core"
-    },
-    "packages/puppeteer": {
-      "release-type": "node",
-      "package-name": "@snapka/puppeteer",
-      "component": "puppeteer",
-      "tag-separator": "-",
-      "scope": "puppeteer"
+      "scope": "types"
     },
     "packages/puppeteer-browsers": {
       "release-type": "node",
@@ -95,6 +75,20 @@
       "tag-separator": "-",
       "scope": "browsers"
     },
+    "packages/browser-finder": {
+      "release-type": "node",
+      "package-name": "@snapka/browser-finder",
+      "component": "browser-finder",
+      "tag-separator": "-",
+      "scope": "browser-finder"
+    },
+    "packages/playwright-core": {
+      "release-type": "node",
+      "package-name": "@snapka/playwright-core",
+      "component": "playwright-core",
+      "tag-separator": "-",
+      "scope": "playwright-core"
+    },
     "packages/puppeteer-core": {
       "release-type": "node",
       "package-name": "@snapka/puppeteer-core",
@@ -102,12 +96,19 @@
       "tag-separator": "-",
       "scope": "puppeteer-core"
     },
-    "packages/snapka-types": {
+    "packages/playwright": {
       "release-type": "node",
-      "package-name": "@snapka/types",
-      "component": "types",
+      "package-name": "@snapka/playwright",
+      "component": "playwright",
       "tag-separator": "-",
-      "scope": "types"
+      "scope": "playwright"
+    },
+    "packages/puppeteer": {
+      "release-type": "node",
+      "package-name": "@snapka/puppeteer",
+      "component": "puppeteer",
+      "tag-separator": "-",
+      "scope": "puppeteer"
     }
   },
   "commit-search-depth": 50
