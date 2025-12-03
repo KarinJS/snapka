@@ -1,6 +1,6 @@
 {
   "name": "@snapka/puppeteer-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Core Puppeteer types and utilities for Snapka",
   "keywords": [
     "puppeteer",
