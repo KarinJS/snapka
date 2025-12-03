@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/KarinJS/snapka/compare/browsers-v0.1.0...browsers-v0.1.1) (2025-12-03)
+
+
+### 🐛 Bug Fixes
+
+* mode ([186e463](https://github.com/KarinJS/snapka/commit/186e463f5f2561244c2cbb253d9f53225502f47e))
+
+
+### 🎡 Continuous Integration
+
+* fix files ([0171dd0](https://github.com/KarinJS/snapka/commit/0171dd07278782a222d481d50eeb14d896a5c495))
+
 ## [0.1.0](https://github.com/KarinJS/snapka/compare/browsers-v0.0.1...browsers-v0.1.0) (2025-12-03)
 
 
