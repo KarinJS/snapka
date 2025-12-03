@@ -53,6 +53,9 @@ jobs:
       - name: 构建所有包
         run: pnpm -r run build
 
+      - name: 忽略文件权限变化
+        run: git config core.filemode false
+
       - name: 发布 browsers 包
         if: ${{ needs.release-please.outputs.browsers_release == 'true' }}
         working-directory: packages/puppeteer-browsers

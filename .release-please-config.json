@@ -3,6 +3,11 @@
   "release-type": "node",
   "include-component-in-tag": true,
   "always-link-local": true,
+  "plugins": [
+    {
+      "type": "node-workspace"
+    }
+  ],
   "changelog-sections": [
     {
       "type": "feat",
