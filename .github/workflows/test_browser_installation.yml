@@ -2,14 +2,6 @@ name: 浏览器安装测试
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - test-browser-installation
-  pull_request:
-    paths:
-      - "packages/playwright-core/src/server/registry/**"
-      - ".github/workflows/test_browser_installation.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -64,29 +56,40 @@ jobs:
         shell: ${{ matrix.shell }}
 
     steps:
-      - name: 检出代码仓库
-        uses: actions/checkout@v4
+      - name: 创建测试目录
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            TEST_DIR="$RUNNER_TEMP\\browser-test"
+            mkdir -p "$TEST_DIR"
+            cd "$TEST_DIR"
+            echo "TEST_DIR=$TEST_DIR" >> $GITHUB_ENV
+          else
+            TEST_DIR="${{ runner.temp }}/browser-test"
+            mkdir -p "$TEST_DIR"
+            cd "$TEST_DIR"
+            echo "TEST_DIR=$TEST_DIR" >> $GITHUB_ENV
+          fi
+          pwd
+        shell: bash
 
       - name: 设置 Node.js 环境
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: 安装项目依赖
+      - name: 初始化测试项目
         run: |
-          echo "=== 正在安装项目依赖 ==="
-          pnpm init
-          pnpm install playwright
+          cd "$TEST_DIR"
+          npm init -y
+          npm install @snapka/playwright
+        shell: bash
         continue-on-error: false
 
       - name: 安装 Playwright 浏览器
         id: install-browsers
         run: |
+          cd "$TEST_DIR"
+          
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
             LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
@@ -96,6 +99,7 @@ jobs:
 
           echo "" | tee -a "$LOG_FILE"
           echo "=== 正在安装 Playwright 浏览器 ===" | tee -a "$LOG_FILE"
+          echo "工作目录: $(pwd)" | tee -a "$LOG_FILE"
           echo "这将安装所有默认浏览器（chromium、firefox、webkit）" | tee -a "$LOG_FILE"
           echo "" | tee -a "$LOG_FILE"
 
@@ -118,6 +122,8 @@ jobs:
 
       - name: 使用 Playwright CLI 验证安装
         run: |
+          cd "$TEST_DIR"
+          
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
             LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
@@ -139,8 +145,49 @@ jobs:
         shell: bash
         continue-on-error: true
 
+      - name: 创建浏览器查询脚本
+        run: |
+          cd "$TEST_DIR"
+          
+          cat > test-browser.mjs << 'EOF'
+          import { chromium, firefox, webkit } from '@snapka/playwright';
+
+          console.log('=== 测试 Playwright 浏览器 ===\n');
+
+          async function testBrowser(browserType, name) {
+            try {
+              console.log(`正在测试 ${name}...`);
+              const browser = await browserType.launch({ headless: true });
+              const version = browser.version();
+              console.log(`✅ ${name} 版本: ${version}`);
+              await browser.close();
+              return true;
+            } catch (error) {
+              console.error(`❌ ${name} 失败:`, error.message);
+              return false;
+            }
+          }
+
+          (async () => {
+            const results = await Promise.all([
+              testBrowser(chromium, 'Chromium'),
+              testBrowser(firefox, 'Firefox'),
+              testBrowser(webkit, 'WebKit')
+            ]);
+            
+            const allSuccess = results.every(r => r);
+            console.log(`\n测试结果: ${allSuccess ? '✅ 全部成功' : '❌ 部分失败'}`);
+            process.exit(allSuccess ? 0 : 1);
+          })();
+          EOF
+          
+          cat test-browser.mjs
+        shell: bash
+
       - name: 执行浏览器查询脚本
         run: |
+          cd "$TEST_DIR"
+          
           # 设置日志文件路径
           if [ "$RUNNER_OS" == "Windows" ]; then
             LOG_FILE=$(cygpath -u "$RUNNER_TEMP")/test-log-${{ matrix.os }}-${{ matrix.arch }}.txt
@@ -149,10 +196,10 @@ jobs:
           fi
 
           echo "" | tee -a "$LOG_FILE"
-          echo "=== 执行浏览器查询脚本 (node index.mjs) ===" | tee -a "$LOG_FILE"
+          echo "=== 执行浏览器查询脚本 (node test-browser.mjs) ===" | tee -a "$LOG_FILE"
           echo "" | tee -a "$LOG_FILE"
 
-          node index.mjs 2>&1 | tee -a "$LOG_FILE" || true
+          node test-browser.mjs 2>&1 | tee -a "$LOG_FILE" || true
 
           echo "" | tee -a "$LOG_FILE"
         shell: bash
@@ -190,11 +237,7 @@ jobs:
             echo ""
 
             echo "### 浏览器根目录"
-            if [ "${{ steps.find-browsers.outputs.browser-root }}" == "NOT_FOUND" ]; then
-              echo "⚠️ 未找到浏览器根目录"
-            else
-              echo "\`${{ steps.find-browsers.outputs.browser-root }}\`"
-            fi
+            echo "\`$TEST_DIR\`"
             echo ""
 
             echo "### 完整日志"

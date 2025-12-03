@@ -25,6 +25,7 @@
   "license": "MIT",
   "author": "shijin",
   "type": "module",
+  "access": "public",
   "exports": {
     ".": {
       "types": "./src/index.ts",

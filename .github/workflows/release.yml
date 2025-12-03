@@ -42,10 +42,8 @@ jobs:
         with:
           version: 9
       - name: 发布 browser-finder 包
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         working-directory: packages/browser-finder
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
 
   publish-browsers:
     needs: release-please
@@ -64,10 +62,8 @@ jobs:
         with:
           version: 9
       - name: 发布 browsers 包
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         working-directory: packages/puppeteer-browsers
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
 
   publish-types:
     needs: release-please
@@ -86,10 +82,8 @@ jobs:
         with:
           version: 9
       - name: 发布 types 包
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/snapka-types
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: pnpm publish
 
   publish-playwright-core:
     needs: release-please
@@ -108,10 +102,8 @@ jobs:
         with:
           version: 9
       - name: 发布 playwright-core 包
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/playwright-core
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
 
   publish-puppeteer-core:
     needs: release-please
@@ -130,10 +122,8 @@ jobs:
         with:
           version: 9
       - name: 发布 puppeteer-core 包
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/puppeteer-core
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
 
   publish-playwright:
     needs:
@@ -163,10 +153,8 @@ jobs:
         with:
           version: 9
       - name: 发布 playwright 包
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/playwright
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
 
   publish-puppeteer:
     needs:
@@ -196,7 +184,5 @@ jobs:
         with:
           version: 9
       - name: 发布 puppeteer 包
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: packages/puppeteer
-        run: pnpm i && pnpm run build && pnpm publish --access public --provenance --no-git-checks
+        run: pnpm i && pnpm run build && pnpm publish
