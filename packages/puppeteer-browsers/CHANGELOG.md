@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/KarinJS/snapka/compare/browsers-v0.1.3...browsers-v0.1.4) (2025-12-04)
+
+
+### 🐛 Bug Fixes
+
+* **browsers:** cli入口 ([b0e62ba](https://github.com/KarinJS/snapka/commit/b0e62ba3e1001701821fa7b2f23aff5950f32fdf))
+
 ## [0.1.3](https://github.com/KarinJS/snapka/compare/browsers-v0.1.2...browsers-v0.1.3) (2025-12-03)
 
 
