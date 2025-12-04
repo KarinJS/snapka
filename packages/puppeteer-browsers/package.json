@@ -55,7 +55,7 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "bin": "dist/main-cli.mjs",
+    "bin": "dist/cli.mjs",
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",
